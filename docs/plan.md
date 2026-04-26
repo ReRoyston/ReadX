@@ -44,6 +44,7 @@ ReadX/
 │   │   ├── IScreenCaptureService.cs / ScreenCaptureService.cs
 │   │   ├── IOcrService.cs / OcrService.cs
 │   │   ├── IRegionSelector.cs / RegionSelector.cs
+│   │   ├── IRsvpPresenter.cs / RsvpPresenter.cs
 │   │   ├── ITicker.cs / DispatcherTicker.cs
 │   │   └── RsvpPlayer.cs
 │   ├── Models/
@@ -61,7 +62,7 @@ ReadX/
 
 Key separations:
 - **Pure logic** (`Tokenization/`, `Models/`, `RsvpPlayer` minus its ticker) is testable without WPF.
-- **OS-touching code** (`HotkeyService`, `ScreenCaptureService`, `OcrService`, `RegionSelector`) is in `Services/` behind small interfaces so it can be stubbed.
+- **OS-touching code** (`HotkeyService`, `ScreenCaptureService`, `OcrService`, `RegionSelector`, `RsvpPresenter`) is in `Services/` behind small interfaces so it can be stubbed.
 - **Views** hold no logic beyond DataContext binding and trivial event forwarding.
 - **`AppController`** holds the state machine; `App.xaml.cs` stays a thin composition root.
 
@@ -103,13 +104,14 @@ History list · settings persistence · hotkey rebinding UI · multi-language OC
 ## Phase 2 — Scaffold (RESUME FROM CURRENT STATE)
 
 ### Already done (from prior session)
-- .NET 8.0.420 SDK installed at `C:\Program Files\dotnet\` (winget); current bash session does not see it on PATH — invocations need `PATH="/c/Program Files/dotnet:$PATH" dotnet ...` until a new shell is opened.
+- .NET 8.0.420 SDK installed at `C:\Program Files\dotnet\`; current PowerShell sees `dotnet` on PATH. Older bash sessions may still need a terminal restart.
 - Git LFS 3.7.1 confirmed; `git lfs install` run for the repo; `tessdata/*.traineddata` tracked in `.gitattributes`.
 - `ReadX.sln` created at repo root.
 - `src/ReadX.csproj` created (WPF, `net8.0-windows`).
 - `tests/ReadX.Tests/ReadX.Tests.csproj` created — target bumped to `net8.0-windows` so the test project can reference the WPF project.
 - Both projects added to `ReadX.sln`; test project references `src/ReadX.csproj`.
 - `MainWindow.xaml` and `MainWindow.xaml.cs` physically moved from `src/` to `src/Views/`.
+- `.gitignore` already ignores `bin/`, `obj/`, and `*.user`.
 
 ### Locked decisions (deltas from the original Phase 2 plan)
 - **Test target framework:** `net8.0-windows`, NOT `net8.0`. The test project references the WPF project, which forces a Windows-platform target. Original plan was wrong.
@@ -130,7 +132,7 @@ History list · settings persistence · hotkey rebinding UI · multi-language OC
    - `dotnet add src/ReadX.csproj package Wpf.Ui`
    - `dotnet add src/ReadX.csproj package Tesseract`
    - I'll report the exact stable versions chosen before running.
-4. Download `tessdata/eng.traineddata` from `https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata`.
+4. Download `tessdata/eng.traineddata` from a pinned official `tesseract-ocr/tessdata` commit URL, not `raw/main`; record the commit URL and SHA256 checksum in this plan when the file is fetched.
 5. Add `<Content>` block to `src/ReadX.csproj`:
    ```xml
    <ItemGroup>
@@ -140,14 +142,13 @@ History list · settings persistence · hotkey rebinding UI · multi-language OC
      </Content>
    </ItemGroup>
    ```
-6. Extend `.gitignore` with `bin/`, `obj/`, `*.user`.
-7. Verify (all four must pass):
+6. Verify (all four must pass):
    - `dotnet build` — 0 errors, 0 new warnings.
    - `dotnet test` — smoke test green.
    - `src/bin/Debug/net8.0-windows/tessdata/eng.traineddata` exists.
    - `dotnet run --project src/ReadX.csproj` opens the default empty WPF window.
-8. Update `docs/changelog.md` and `docs/project_status.md`.
-9. Commit on `v1` (no push — release-time only).
+7. Update `docs/changelog.md` and `docs/project_status.md`.
+8. Commit on `v1` (no push — release-time only).
 
 ### Approval gates remaining in Phase 2
 - NuGet package install (`Wpf.Ui`, `Tesseract`) — explicit user approval before `dotnet add`.
@@ -243,6 +244,28 @@ public sealed class RsvpPlayer
 ## Phase 4 — RsvpOverlay window
 Per the high-level summary above. No further detail locked yet — design in detail at the start of the phase if needed. Notable constraint: borderless topmost frameless window pinned above the captured region; shows one large word + thin progress bar; no ORP.
 
+### Ownership decision
+- `RsvpPlayer` owns playback timing and state only.
+- `RsvpOverlay` owns WPF rendering only.
+- `RsvpPresenter` owns the RSVP window lifecycle: create/show/position/close the overlay, bind player events to the overlay, and route overlay keyboard input (`Space` pause/resume, `Esc` cancel) back to playback.
+- `AppController` depends on `IRsvpPresenter`, not directly on `RsvpOverlay`, so orchestration stays independent of view lifecycle details.
+
+### Files this phase creates
+- `src/Views/RsvpOverlay.xaml` / `.cs`
+- `src/Services/IRsvpPresenter.cs`
+- `src/Services/RsvpPresenter.cs`
+
+### Contracts (sketch)
+```csharp
+namespace ReadX.Services;
+
+public interface IRsvpPresenter
+{
+    Task PlayAsync(RsvpPlayer player, CaptureRegion region);
+    void Close();
+}
+```
+
 ---
 
 ## Phase 5 — RegionSelectOverlay window (DETAILED)
@@ -250,7 +273,7 @@ Per the high-level summary above. No further detail locked yet — design in det
 ### Locked decisions
 - **Two coordinate systems on purpose:**
   - **Visuals** (the dragged rectangle preview) live in WPF DIPs.
-  - **Final commit** uses `GetCursorPos` physical pixels at the moment of mouse-up, expressed relative to the virtual-screen origin (which can be negative on multi-monitor setups).
+  - **Final commit** captures both mouse-down and mouse-up physical cursor positions via `GetCursorPos`, then calculates the committed `CaptureRegion` from those two physical points relative to the virtual-screen origin (which can be negative on multi-monitor setups).
   - Avoids WPF transform pitfalls in mixed-DPI multi-monitor scenarios.
 - **DPI awareness:** Per-Monitor V2 declared via `src/app.manifest`. Without this, capture coords drift on non-100% scaling.
 - **Cancel:** `Esc` closes the overlay and returns `null` from `SelectAsync`.
@@ -309,10 +332,16 @@ And in `src/ReadX.csproj`: `<ApplicationManifest>app.manifest</ApplicationManife
 - **Capture mechanism:** GDI `Graphics.CopyFromScreen` from the virtual-screen origin into a `Bitmap` sized to the `CaptureRegion`. Simple, dependency-free, works on Win10+. **v2 lever:** Windows Graphics Capture (WGC) is faster and cleaner for hardware-accelerated content; defer until a real complaint.
 - **Coordinates:** input `CaptureRegion` is already physical pixels at virtual-screen origin (Phase 5's contract). No DPI math needed inside this service.
 - **Output:** `System.Drawing.Bitmap` (consumed by `OcrService` in Phase 7).
+- **Windows-only dependency path:** v1 is Windows-only WPF. Phase 6 explicitly enables the required Windows desktop drawing support in `src/ReadX.csproj` (preferred: `<UseWindowsForms>true</UseWindowsForms>` for access to `System.Drawing`/GDI types) before implementing capture. If that project setting proves insufficient during build, stop and ask before adding any extra package.
 
 ### Files this phase creates
 - `src/Services/IScreenCaptureService.cs`
 - `src/Services/ScreenCaptureService.cs`
+
+### Project file change
+```xml
+<UseWindowsForms>true</UseWindowsForms>
+```
 
 ### Contracts (sketch)
 ```csharp
@@ -365,7 +394,7 @@ public sealed class OcrService : IOcrService
 ### Failure modes
 - **Missing `eng.traineddata`** (file deleted, copy-to-output broken, etc.):
   - Constructor throws.
-  - `App.OnStartup` catches, sets `OcrAvailable = false`, paints OCR status red on MainWindow, disables Capture.
+  - `App.OnStartup` catches and passes `IOcrService?` as `null` to `AppController`; `OcrAvailable = false`, MainWindow paints OCR status red, and Capture is disabled.
 
 ### Verification gate to leave Phase 7
 - Manual: screenshot a known paragraph in Notepad, run through `OcrService`, eyeball the string. Should be near-perfect for clean computer-written text.
@@ -377,6 +406,8 @@ public sealed class OcrService : IOcrService
 
 ### Locked decisions
 - **Mechanism:** Win32 `RegisterHotKey` via P/Invoke. WPF message-loop hook through `HwndSource.AddHook` to catch `WM_HOTKEY` (`0x0312`).
+- **HWND ownership:** v1 registers the hotkey against the main window HWND from `WindowInteropHelper`. `HotkeyService` does not create a hidden message window.
+- **Registration timing:** `TryRegister` is called only after `MainWindow.SourceInitialized`, when the WPF HWND exists and `HwndSource.AddHook` can be attached safely.
 - **Default hotkey:** `Ctrl+Shift+R` (locked v1 default; not rebindable).
 - **Re-entrant guard:** `SetBusy(bool busy)` lives **inside** `HotkeyService`. While busy, the hook drops `WM_HOTKEY` messages. Keeps the orchestrator simpler — it just calls `SetBusy(true)` on entry and `SetBusy(false)` on exit/failure.
 - **Conflict handling:** if `RegisterHotKey` fails (e.g. another app holds the same combo), `TryRegister` returns `false`. App keeps running in degraded mode — manual Capture button still works; main window paints the hotkey label red.
@@ -393,13 +424,14 @@ namespace ReadX.Services;
 
 public interface IHotkeyService : IDisposable
 {
-    bool TryRegister(ModifierKeys mods, Key key, Action callback);
+    bool TryRegister(IntPtr hwnd, ModifierKeys mods, Key key, Action callback);
     void Unregister();
     void SetBusy(bool busy);   // re-entrant guard; drops hotkey while a capture/playback is in-flight
 }
 ```
 
 ### Verification gate to leave Phase 8
+- Manual: launch app → hotkey registration happens after `MainWindow.SourceInitialized`; no startup race or missing HWND.
 - Manual: press `Ctrl+Shift+R` → callback fires.
 - Manual: press it again while busy → silently ignored.
 - Manual: launch with another app already holding `Ctrl+Shift+R` (e.g. AutoHotkey) → app starts, hotkey label red, manual capture still works.
@@ -431,6 +463,7 @@ Per the high-level summary. Wires Capture button, hotkey label (green/red), WPM 
 - `src/AppController.cs`
 - `src/Models/AppState.cs` (enum)
 - `src/Models/RsvpSession.cs` (if not already created in Phase 3)
+- `src/Services/IRsvpPresenter.cs` / `src/Services/RsvpPresenter.cs` (if not already created in Phase 4)
 
 ### Contracts (sketch)
 ```csharp
@@ -447,8 +480,9 @@ public sealed class AppController
         IHotkeyService hotkey,
         IRegionSelector selector,
         IScreenCaptureService capture,
-        IOcrService ocr,
-        RsvpPlayer player);
+        IOcrService? ocr,
+        RsvpPlayer player,
+        IRsvpPresenter presenter);
 
     public AppState State { get; }
     public string? Status { get; }              // last user-visible message ("OCR failed.", etc.)
@@ -459,6 +493,7 @@ public sealed class AppController
 
     public event Action? StateChanged;
 
+    public void SetHotkeyAvailable(bool available);
     public Task StartCaptureAsync();            // hotkey or button entry point
     public Task ReplayLastAsync();
 }
@@ -466,10 +501,12 @@ public sealed class AppController
 
 ### Composition root sequence (`App.OnStartup`)
 1. Build `IScreenCaptureService` (no I/O).
-2. Build `IOcrService` — try/catch for missing tessdata. On fail, set `OcrAvailable = false` and continue.
-3. Build `IHotkeyService` — try register; set `HotkeyAvailable = false` on conflict.
-4. Build `RsvpPlayer` with `DispatcherTicker`.
-5. Build `AppController`, wire to `MainWindow`, show window.
+2. Build `IOcrService` — try/catch for missing tessdata. On fail, keep `IOcrService?` as `null`; `AppController.OcrAvailable = false`.
+3. Build `RsvpPlayer` with `DispatcherTicker`.
+4. Build `IRsvpPresenter` for RSVP overlay lifecycle and keyboard routing.
+5. Build `IHotkeyService` but do not register it yet.
+6. Build `AppController`, wire to `MainWindow`, and show window.
+7. After `MainWindow.SourceInitialized`, call `TryRegister(hwnd, ModifierKeys.Control | ModifierKeys.Shift, Key.R, ...)` against the main window HWND. Pass the result to `AppController.SetHotkeyAvailable(...)`; if registration fails, manual Capture remains available.
 
 ### Failure handling table (8 modes)
 | # | Failure | Behaviour |
