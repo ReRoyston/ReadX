@@ -132,7 +132,7 @@ History list · settings persistence · hotkey rebinding UI · multi-language OC
    - `dotnet add src/ReadX.csproj package Wpf.Ui`
    - `dotnet add src/ReadX.csproj package Tesseract`
    - I'll report the exact stable versions chosen before running.
-4. Download `tessdata/eng.traineddata` from a pinned official `tesseract-ocr/tessdata` commit URL, not `raw/main`; record the commit URL and SHA256 checksum in this plan when the file is fetched.
+4. Download `tessdata/eng.traineddata` from a pinned official `tesseract-ocr/tessdata` commit URL, not `raw/main`; record the commit URL and SHA256 checksum in this plan when the file is fetched. **Done:** `https://raw.githubusercontent.com/tesseract-ocr/tessdata/ced78752cc61322fb554c280d13360b35b8684e4/eng.traineddata`; SHA256 `DAA0C97D651C19FBA3B25E81317CD697E9908C8208090C94C3905381C23FC047`; size `23466654` bytes.
 5. Add `<Content>` block to `src/ReadX.csproj`:
    ```xml
    <ItemGroup>
@@ -142,13 +142,13 @@ History list · settings persistence · hotkey rebinding UI · multi-language OC
      </Content>
    </ItemGroup>
    ```
-6. Verify (all four must pass):
+6. Verify (all four must pass): **Done for scaffold smoke verification.**
    - `dotnet build` — 0 errors, 0 new warnings.
    - `dotnet test` — smoke test green.
    - `src/bin/Debug/net8.0-windows/tessdata/eng.traineddata` exists.
-   - `dotnet run --project src/ReadX.csproj` opens the default empty WPF window.
-7. Update `docs/changelog.md` and `docs/project_status.md`.
-8. Commit on `v1` (no push — release-time only).
+   - `dotnet run --project src/ReadX.csproj --no-build` stays running after startup smoke test.
+7. Update `docs/changelog.md` and `docs/project_status.md`. **Done.**
+8. Commit on `v1` (no push — release-time only). **Next.**
 
 ### Approval gates remaining in Phase 2
 - NuGet package install (`Wpf.Ui`, `Tesseract`) — explicit user approval before `dotnet add`.
