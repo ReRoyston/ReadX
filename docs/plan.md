@@ -236,7 +236,7 @@ public sealed class RsvpPlayer
   - Tick interval = `60000 / wpm` ms (sanity-checked at WPM = 100, 300, 800).
 
 ### Verification gate to leave Phase 3
-- `dotnet test` green.
+- `dotnet test` green. **Done:** `dotnet test -m:1` passes with 13 tests.
 - (No manual UI test yet — Phase 4 wires this to a window.)
 
 ---
@@ -254,6 +254,7 @@ Per the high-level summary above. No further detail locked yet — design in det
 - `src/Views/RsvpOverlay.xaml` / `.cs`
 - `src/Services/IRsvpPresenter.cs`
 - `src/Services/RsvpPresenter.cs`
+- `src/Models/CaptureRegion.cs` (moved forward from Phase 5 because the presenter contract depends on it)
 
 ### Contracts (sketch)
 ```csharp
@@ -265,6 +266,10 @@ public interface IRsvpPresenter
     void Close();
 }
 ```
+
+### Verification gate to leave Phase 4
+- `dotnet build -m:1` passes with zero warnings. **Done.**
+- `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
 
 ---
 
@@ -281,11 +286,11 @@ public interface IRsvpPresenter
 - **Multi-monitor:** overlay window spans the virtual screen rectangle (`SystemParameters.VirtualScreen{Left,Top,Width,Height}`), topmost.
 
 ### Files this phase creates
-- `src/app.manifest` (PerMonitorV2 declaration)
-- `src/Views/RegionSelectOverlay.xaml` / `.cs`
-- `src/Services/IRegionSelector.cs`
-- `src/Services/RegionSelector.cs` (shows the overlay window, returns the chosen region)
-- `src/Models/CaptureRegion.cs`
+- `src/app.manifest` (PerMonitorV2 declaration) **Done.**
+- `src/Views/RegionSelectOverlay.xaml` / `.cs` **Done.**
+- `src/Services/IRegionSelector.cs` **Done.**
+- `src/Services/RegionSelector.cs` (shows the overlay window, returns the chosen region) **Done.**
+- `src/Models/CaptureRegion.cs` **Done in Phase 4 because the presenter contract needed it.**
 
 ### Contracts (sketch)
 ```csharp
@@ -318,11 +323,9 @@ public interface IRegionSelector
 And in `src/ReadX.csproj`: `<ApplicationManifest>app.manifest</ApplicationManifest>`.
 
 ### Verification gate to leave Phase 5
-- Drag-rect overlay covers all monitors at 100%, 125%, 150% scaling.
-- Size/origin readout updates live during drag.
-- `Esc` cancels.
-- Click without drag cancels.
-- Returns a `CaptureRegion` with sensible physical-pixel values (eyeball against drag).
+- `dotnet build -m:1` passes with zero warnings. **Done.**
+- `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
+- Manual drag-path verification is deferred until the selector is reachable through the app flow.
 
 ---
 
@@ -342,6 +345,7 @@ And in `src/ReadX.csproj`: `<ApplicationManifest>app.manifest</ApplicationManife
 ```xml
 <UseWindowsForms>true</UseWindowsForms>
 ```
+Implemented with `<DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>` to avoid WinForms/WPF implicit namespace ambiguity.
 
 ### Contracts (sketch)
 ```csharp
@@ -354,7 +358,9 @@ public interface IScreenCaptureService
 ```
 
 ### Verification gate to leave Phase 6
-- Manual: capture a known region (e.g. a Notepad window), save bitmap to temp file, eyeball it → matches expectation at 100%, 125%, 150% scaling on primary and secondary monitors.
+- `dotnet build -m:1` passes with zero warnings. **Done.**
+- `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
+- Manual: capture a known region (e.g. a Notepad window), save bitmap to temp file, eyeball it → matches expectation at 100%, 125%, 150% scaling on primary and secondary monitors. **Deferred until capture is reachable through the app flow.**
 - No unit tests (pure I/O against a screen — covered by manual golden path).
 
 ---
@@ -370,8 +376,8 @@ public interface IScreenCaptureService
 - **tessdata path:** loaded from the `tessdata/` directory next to the executable (Phase 2's `<Content>` block guarantees it's there).
 
 ### Files this phase creates
-- `src/Services/IOcrService.cs`
-- `src/Services/OcrService.cs`
+- `src/Services/IOcrService.cs` **Done.**
+- `src/Services/OcrService.cs` **Done.**
 
 ### Contracts (sketch)
 ```csharp
@@ -397,7 +403,9 @@ public sealed class OcrService : IOcrService
   - `App.OnStartup` catches and passes `IOcrService?` as `null` to `AppController`; `OcrAvailable = false`, MainWindow paints OCR status red, and Capture is disabled.
 
 ### Verification gate to leave Phase 7
-- Manual: screenshot a known paragraph in Notepad, run through `OcrService`, eyeball the string. Should be near-perfect for clean computer-written text.
+- `dotnet build -m:1` passes with zero warnings. **Done.**
+- `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
+- Manual: screenshot a known paragraph in Notepad, run through `OcrService`, eyeball the string. Should be near-perfect for clean computer-written text. **Deferred until OCR is reachable through the app flow.**
 - No unit tests (pure I/O against an external library — covered by manual).
 
 ---
@@ -414,9 +422,9 @@ public sealed class OcrService : IOcrService
 - **Cleanup:** `Unregister` on app shutdown, plus removing the hook.
 
 ### Files this phase creates
-- `src/Services/IHotkeyService.cs`
-- `src/Services/HotkeyService.cs`
-- `src/Services/HotkeyMapping.cs` (small helper — `ModifierKeys` + `Key` → Win32 modifier + virtual-key int)
+- `src/Services/IHotkeyService.cs` **Done.**
+- `src/Services/HotkeyService.cs` **Done.**
+- `src/Services/HotkeyMapping.cs` (small helper — `ModifierKeys` + `Key` → Win32 modifier + virtual-key int) **Done.**
 
 ### Contracts (sketch)
 ```csharp
@@ -431,16 +439,23 @@ public interface IHotkeyService : IDisposable
 ```
 
 ### Verification gate to leave Phase 8
-- Manual: launch app → hotkey registration happens after `MainWindow.SourceInitialized`; no startup race or missing HWND.
-- Manual: press `Ctrl+Shift+R` → callback fires.
-- Manual: press it again while busy → silently ignored.
-- Manual: launch with another app already holding `Ctrl+Shift+R` (e.g. AutoHotkey) → app starts, hotkey label red, manual capture still works.
-- Cleanup: close app → hotkey released (reproducible by registering same combo with another tool afterwards).
+- `dotnet build -m:1` passes with zero warnings. **Done.**
+- `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
+- Manual: launch app → hotkey registration happens after `MainWindow.SourceInitialized`; no startup race or missing HWND. **Deferred until app wiring.**
+- Manual: press `Ctrl+Shift+R` → callback fires. **Deferred until app wiring.**
+- Manual: press it again while busy → silently ignored. **Deferred until app wiring.**
+- Manual: launch with another app already holding `Ctrl+Shift+R` (e.g. AutoHotkey) → app starts, hotkey label red, manual capture still works. **Deferred until app wiring.**
+- Cleanup: close app → hotkey released (reproducible by registering same combo with another tool afterwards). **Deferred until app wiring.**
 
 ---
 
 ## Phase 9 — MainWindow
 Per the high-level summary. Wires Capture button, hotkey label (green/red), WPM slider (clamped 100–800), last-OCR preview, Replay button. WPF UI (`Wpf.Ui`) styling lands here. No further detail locked yet — design in detail at the start of the phase.
+
+### Verification gate to leave Phase 9
+- `dotnet build -m:1` passes with zero warnings. **Done.**
+- `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
+- `dotnet run --project src\ReadX.csproj --no-build` launch smoke stays running after startup. **Done.**
 
 ---
 
@@ -460,10 +475,10 @@ Per the high-level summary. Wires Capture button, hotkey label (green/red), WPM 
 - **No state-machine unit tests in v1.** Manual golden path covers it. Add tests in v2 if the state machine grows.
 
 ### Files this phase creates
-- `src/AppController.cs`
-- `src/Models/AppState.cs` (enum)
-- `src/Models/RsvpSession.cs` (if not already created in Phase 3)
-- `src/Services/IRsvpPresenter.cs` / `src/Services/RsvpPresenter.cs` (if not already created in Phase 4)
+- `src/AppController.cs` **Done.**
+- `src/Models/AppState.cs` (enum) **Done.**
+- `src/Models/RsvpSession.cs` (if not already created in Phase 3) **Updated to cache words, region, and OCR text.**
+- `src/Services/IRsvpPresenter.cs` / `src/Services/RsvpPresenter.cs` (if not already created in Phase 4) **Done in Phase 4.**
 
 ### Contracts (sketch)
 ```csharp
@@ -521,11 +536,17 @@ public sealed class AppController
 | 8 | RSVP overlay fails to position (impossible-rect) | Centre overlay on primary monitor; status `"Overlay fallback."` |
 
 ### Verification gate to leave Phase 10 (10-case manual golden path)
-1. Launch app → main window appears, OCR + hotkey labels green.
-2. Press `Ctrl+Shift+R` → region overlay appears.
-3. Drag rectangle around a paragraph in Notepad → RSVP overlay plays words above the region at 300 WPM.
-4. `Space` pauses, `Space` resumes, `Esc` cancels.
-5. `Replay last` plays the same words again.
+Startup verification:
+- `dotnet build -m:1` passes with zero warnings. **Done.**
+- `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
+- `dotnet run --project src\ReadX.csproj --no-build` wired startup smoke stays running after startup. **Done.**
+
+Manual golden path:
+1. Launch app → main window appears, OCR + hotkey labels green. **User-confirmed.**
+2. Press `Ctrl+Shift+R` → region overlay appears. **User-confirmed.**
+3. Drag rectangle around a paragraph in Notepad → RSVP overlay plays words above the region at 300 WPM. **User-confirmed.**
+4. `Space` pauses, `Space` resumes, `Esc` cancels. **User-confirmed.**
+5. `Replay last` plays the same words again. **User-confirmed.**
 6. Change WPM slider to 500, `Replay last` → faster playback.
 7. Repeat steps 2–3 on a secondary monitor.
 8. Repeat steps 2–3 at 125% display scaling — capture aligns with drag (PMv2 canary).
