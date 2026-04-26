@@ -103,9 +103,11 @@
   - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
   - Verified `dotnet run --project src\ReadX.csproj --no-build` wired startup smoke: app stayed running after startup
   - User-confirmed manual golden path works
+- **Documentation:**
+  - Added `docs/journal.md` entry for v1 build lessons and issues
 
 ## Up Next
-1. Commit Phase 3-10 implementation on `v1` branch
+1. Commit journal documentation update on `v1` branch
 
 ## Known Issues
 - None for Phase 10.
