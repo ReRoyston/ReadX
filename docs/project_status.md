@@ -1,8 +1,31 @@
 # Project Status
 
-**Current Phase:** v1 - Core loop complete; pre-PR verification in progress
+**Current Phase:** v2 planning - design and implementation plan ready; awaiting execution choice
 
 ## Done
+- v2 implementation plan drafted at `docs/superpowers/plans/2026-04-28-v2-implementation.md`:
+  - Foundation-first file map and task order
+  - Settings and history persistence tasks
+  - Shared cleanup/text pipeline tasks
+  - Restartable playback and ORP rendering tasks
+  - Configurable hotkey and left-tab UI tasks
+  - Composition, manual golden path, and documentation tasks
+- Architecture and journal docs updated with v2 planning decisions and workflow lessons
+- v2 design direction approved and written to `docs/superpowers/specs/2026-04-28-v2-design.md`:
+  - One large `v2` release focused on daily usefulness
+  - Left-side tab navigation for Capture, Import, History, and Settings
+  - JSON settings persistence in app data
+  - Raw-text history with configurable limit defaulting to `20`
+  - Quick manual import
+  - Configurable hotkeys for capture, replay last, pause/resume, and cancel
+  - Automatic text cleanup with global toggle
+  - Replay controls for pause/resume, restart, and cancel
+  - Classic ORP focused-letter RSVP rendering with fixed v2 design
+- Superpowers installed as external Codex workflow tooling:
+  - Cloned `obra/superpowers` to `C:\Users\Royston\.codex\superpowers`
+  - Created Windows junction `C:\Users\Royston\.agents\skills\superpowers` -> `C:\Users\Royston\.codex\superpowers\skills`
+  - Verified discovered skill folders include `using-superpowers`, `brainstorming`, `writing-plans`, `test-driven-development`, and related workflow skills
+  - No ReadX app code, runtime stack, or product architecture changed
 - Initial project scaffold (CLAUDE.md, AGENTS.md, docs/, .gitignore)
 - Branch `v1` created
 - Tech stack chosen and approved
@@ -108,8 +131,9 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Commit and push the pre-PR documentation cleanup.
-2. Create the `v1` pull request into `main`.
+1. Choose execution mode: subagent-driven or inline execution.
+2. Begin Task 1 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+3. Continue one task at a time with verification and documentation updates.
 
 ## Known Issues
 - None for the confirmed Phase 10 golden path.

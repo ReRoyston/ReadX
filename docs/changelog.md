@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+- Updated architecture, project status, and journal docs with the approved v2 planning decisions and workflow lessons.
+- Added the ReadX v2 implementation plan under `docs/superpowers/plans/`, sequenced foundation-first across persistence, text processing, playback, ORP rendering, hotkeys, UI wiring, verification, and docs.
+- Added the approved ReadX v2 design spec covering daily-use features, left-side tab navigation, JSON settings, raw-text history, quick import, configurable hotkeys, text cleanup, replay controls, and classic ORP rendering.
+- Installed Superpowers as external Codex workflow tooling via `C:\Users\Royston\.codex\superpowers` and the `C:\Users\Royston\.agents\skills\superpowers` junction; no ReadX app source or stack changes.
 - Tech stack chosen: C# / .NET 8, WPF, WPF UI theme library, Tesseract OCR via the `Tesseract` NuGet package, xUnit tests
 - v1 scope locked: core loop (hotkey → region select → OCR → RSVP overlay) + minimal main window; no history, no settings persistence, no rebindable hotkeys
 - UI design locked: single-pane main window (Option B), no Optimal Recognition Point in v1

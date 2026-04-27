@@ -11,6 +11,8 @@
 ## Product
 ShareX-style RSVP utility. Global hotkey → drag region → screen capture → OCR → RSVP overlay plays the words above the captured region at a configurable WPM. v1 ships only this core loop plus a minimal main window.
 
+v2 is planned as a daily-use release. It keeps the core loop, then adds persisted settings, raw-text history, quick manual import, configurable hotkeys, text cleanup, restartable playback controls, classic ORP focused-letter rendering, and a compact left-tab main window.
+
 ## Components
 Single WPF project; modular layout, separated by concern.
 
@@ -25,9 +27,23 @@ Single WPF project; modular layout, separated by concern.
 - `Models/CaptureRegion`, `Models/RsvpSession` — plain data.
 - `Tokenization/WordSplitter` — pure logic, text → ordered word tokens.
 
+Planned v2 additions:
+
+- `Models/AppSettings`, `Models/HotkeyBinding` - persisted user preferences and shortcut bindings.
+- `Models/HistoryItem`, `Models/HistorySource` - raw capture/import history records.
+- `Services/JsonSettingsStore` - JSON settings persistence under user app data.
+- `Services/JsonHistoryStore` - JSON raw-text history persistence with retention limit.
+- `Text/TextCleanupService`, `Text/TextPipeline` - optional cleanup before tokenization for capture, import, and history replay.
+- `Rsvp/OrpCalculator`, `Rsvp/OrpWord` - pure ORP focus-letter calculation for overlay rendering.
+
 Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testable without WPF. OS-touching services sit behind small interfaces so they can be stubbed.
 
 ## Key Design Decisions
+- **v2 foundation-first build order.** Settings/history persistence and text pipeline come before UI replacement so capture, import, and history replay share the same contracts. (2026-04-28)
+- **v2 left-side navigation.** Main window moves from v1 single-pane to compact left tabs for Capture, Import, History, and Settings. This avoids a tall portrait layout while keeping the utility feel. (2026-04-28)
+- **v2 history stores raw text only.** History is an activity log, not a library. Replays reprocess raw text through the current cleanup, tokenization, and RSVP renderer so future engine improvements apply to old entries. (2026-04-28)
+- **v2 text cleanup moves before tokenization.** Hyphen and line-wrap cleanup become a dedicated optional pipeline step instead of living inside `WordSplitter`. (2026-04-28)
+- **v2 classic ORP rendering.** RSVP output will highlight the focus letter and align words around a stable ORP anchor; customization is deferred. (2026-04-28)
 - **Single-pane main window for v1.** Sidebar / navigation-view deferred until History and Settings exist — avoids a UI that pretends to have features it doesn't. (2026-04-26)
 - **No Optimal Recognition Point in v1.** RSVP overlay shows centred words only; ORP / focus-letter pivot deferred to a later release. (2026-04-26)
 - **Defaults:** hotkey `Ctrl+Shift+R`, default WPM `300`, playback controls `Space` (pause) / `Esc` (cancel), OCR language English only. (2026-04-26)
