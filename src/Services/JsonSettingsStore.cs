@@ -37,8 +37,35 @@ public sealed class JsonSettingsStore(IAppDataPathProvider pathProvider) : ISett
 
     public async Task SaveAsync(AppSettings settings)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
-        await using var stream = File.Create(settingsPath);
-        await JsonSerializer.SerializeAsync(stream, settings.Normalized(), Options);
+        var directory = Path.GetDirectoryName(settingsPath)!;
+        var tempPath = Path.Combine(directory, "settings.json.tmp");
+
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            await using (var stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, settings.Normalized(), Options);
+            }
+
+            if (File.Exists(settingsPath))
+            {
+                File.Replace(tempPath, settingsPath, null);
+            }
+            else
+            {
+                File.Move(tempPath, settingsPath, overwrite: true);
+            }
+        }
+        catch
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+
+            throw;
+        }
     }
 }

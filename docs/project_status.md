@@ -1,8 +1,15 @@
 # Project Status
 
-**Current Phase:** v2 planning - design and implementation plan ready; awaiting execution choice
+**Current Phase:** v2 implementation - Task 1 settings persistence hardened
 
 ## Done
+- **v2 Task 1: Settings persistence**
+  - Added `AppSettings` and `HotkeyBinding` models for persisted defaults and approved v2 hotkeys
+  - Added app-data path provider and JSON settings store interfaces/implementation
+  - Settings load falls back to defaults when the file is missing, invalid, or empty
+  - Settings save writes through `settings.json.tmp`, then replaces/moves into `settings.json` to avoid truncating a good settings file before serialization succeeds
+  - Window width/height normalize non-finite values to defaults; non-finite left/top values normalize to the unset `NaN` sentinel
+  - Verified `dotnet test -m:1` passes: 20 passed, 0 failed
 - v2 implementation plan drafted at `docs/superpowers/plans/2026-04-28-v2-implementation.md`:
   - Foundation-first file map and task order
   - Settings and history persistence tasks
@@ -131,9 +138,8 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Choose execution mode: subagent-driven or inline execution.
-2. Begin Task 1 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
-3. Continue one task at a time with verification and documentation updates.
+1. Continue with Task 2 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues
 - None for the confirmed Phase 10 golden path.

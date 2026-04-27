@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- Hardened v2 settings persistence: settings saves now write through `settings.json.tmp` and atomically replace/move into place, and non-finite window settings normalize to safe defaults.
+- Added focused settings-store coverage for temp-file cleanup and non-finite window value normalization; verified full test suite passes with 20 tests.
 - Updated architecture, project status, and journal docs with the approved v2 planning decisions and workflow lessons.
 - Added the ReadX v2 implementation plan under `docs/superpowers/plans/`, sequenced foundation-first across persistence, text processing, playback, ORP rendering, hotkeys, UI wiring, verification, and docs.
 - Added the approved ReadX v2 design spec covering daily-use features, left-side tab navigation, JSON settings, raw-text history, quick import, configurable hotkeys, text cleanup, replay controls, and classic ORP rendering.

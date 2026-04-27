@@ -51,6 +51,38 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(7, reloaded.HistoryLimit);
     }
 
+    [Fact]
+    public async Task SaveAsync_WhenSuccessful_DoesNotLeaveTempFileAndWritesSettingsFile()
+    {
+        Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(Path.Combine(root, "settings.json.tmp"), "stale temp");
+        var store = new JsonSettingsStore(new TestPathProvider(root));
+
+        await store.SaveAsync(AppSettings.CreateDefault());
+
+        Assert.True(File.Exists(Path.Combine(root, "settings.json")));
+        Assert.False(File.Exists(Path.Combine(root, "settings.json.tmp")));
+    }
+
+    [Fact]
+    public void Normalized_WhenWindowValuesAreNonFinite_UsesSafeFallbacks()
+    {
+        var settings = AppSettings.CreateDefault() with
+        {
+            WindowWidth = double.PositiveInfinity,
+            WindowHeight = double.NegativeInfinity,
+            WindowLeft = double.PositiveInfinity,
+            WindowTop = double.NegativeInfinity
+        };
+
+        var normalized = settings.Normalized();
+
+        Assert.Equal(860, normalized.WindowWidth);
+        Assert.Equal(560, normalized.WindowHeight);
+        Assert.True(double.IsNaN(normalized.WindowLeft));
+        Assert.True(double.IsNaN(normalized.WindowTop));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(root))

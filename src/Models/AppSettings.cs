@@ -24,7 +24,9 @@ public sealed record AppSettings
     {
         DefaultWpm = Math.Clamp(DefaultWpm, Services.RsvpPlayer.MinimumWpm, Services.RsvpPlayer.MaximumWpm),
         HistoryLimit = Math.Clamp(HistoryLimit, 1, 500),
-        WindowWidth = WindowWidth < 680 ? 860 : WindowWidth,
-        WindowHeight = WindowHeight < 480 ? 560 : WindowHeight
+        WindowWidth = !double.IsFinite(WindowWidth) || WindowWidth < 680 ? 860 : WindowWidth,
+        WindowHeight = !double.IsFinite(WindowHeight) || WindowHeight < 480 ? 560 : WindowHeight,
+        WindowLeft = double.IsFinite(WindowLeft) || double.IsNaN(WindowLeft) ? WindowLeft : double.NaN,
+        WindowTop = double.IsFinite(WindowTop) || double.IsNaN(WindowTop) ? WindowTop : double.NaN
     };
 }
