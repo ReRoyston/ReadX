@@ -13,8 +13,8 @@ public static partial class TextCleanupService
             return string.Empty;
         }
 
-        var text = HyphenatedLineWrapRegex().Replace(raw, string.Empty);
-        text = ParagraphBreakRegex().Replace(text, ParagraphBreakPlaceholder);
+        var text = ParagraphBreakRegex().Replace(raw, ParagraphBreakPlaceholder);
+        text = HyphenatedLineWrapRegex().Replace(text, string.Empty);
         text = SingleLineBreakRegex().Replace(text, " ");
         text = HorizontalWhitespaceRegex().Replace(text, " ");
         text = text.Replace(ParagraphBreakPlaceholder, "\n", StringComparison.Ordinal);

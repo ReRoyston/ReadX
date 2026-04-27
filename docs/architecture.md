@@ -29,7 +29,7 @@ Single WPF project; modular layout, separated by concern.
 - `Models/HistoryItem`, `Models/HistorySource` - raw capture/import history records.
 - `Services/JsonSettingsStore` - JSON settings persistence under user app data; saves through a same-directory temp file before replacing/moving into place.
 - `Services/JsonHistoryStore` - JSON raw-text history persistence under user app data; serializes access and saves through unique same-directory temp files before moving into place with overwrite.
-- `Text/TextCleanupService` - optional cleanup before tokenization; rejoins hyphenated line wraps, normalizes whitespace, and preserves paragraph breaks.
+- `Text/TextCleanupService` - optional cleanup before tokenization; rejoins hyphenated fragments across single line breaks only, normalizes whitespace, and preserves paragraph breaks.
 - `Text/TextPipeline` - shared raw text -> processed text -> word list path for capture, import, and history replay.
 - `Tokenization/WordSplitter` — pure logic, processed text → ordered whitespace-delimited word tokens.
 
@@ -41,7 +41,7 @@ Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testabl
 
 ## Key Design Decisions
 - **v2 history persistence is serialized and temp-file based.** `JsonHistoryStore` serializes public operations with a store-level semaphore, writes retained history to unique `history.json.*.tmp` files in the same directory, then moves into `history.json` with overwrite. Missing or invalid JSON history loads as empty; IO/read failures propagate so writes do not overwrite a real history file after a transient read failure. Whitespace-only entries are not stored, duplicates are kept, and retention trims the oldest items. (2026-04-28)
-- **v2 text cleanup is a shared optional pipeline step.** `TextCleanupService` handles hyphenated line-wrap rejoining, line/paragraph normalization, and whitespace cleanup before `WordSplitter` runs. `TextPipeline` returns raw text, processed text, and words so capture, import, and history replay can share one processing path while respecting the cleanup toggle. (2026-04-28)
+- **v2 text cleanup is a shared optional pipeline step.** `TextCleanupService` rejoins hyphenated fragments only across single line breaks, preserves paragraph breaks as one newline, and handles whitespace cleanup before `WordSplitter` runs. `TextPipeline` returns raw text, processed text, and words so capture, import, and history replay can share one processing path while respecting the cleanup toggle. (2026-04-28)
 - **v2 settings persistence is temp-file based.** `JsonSettingsStore.SaveAsync` serializes to `settings.json.tmp` in the same directory, then uses `File.Replace` for existing settings files or `File.Move(..., overwrite: true)` for first save. This avoids truncating the existing settings file before serialization succeeds. (2026-04-28)
 - **v2 foundation-first build order.** Settings/history persistence and text pipeline come before UI replacement so capture, import, and history replay share the same contracts. (2026-04-28)
 - **v2 left-side navigation.** Main window moves from v1 single-pane to compact left tabs for Capture, Import, History, and Settings. This avoids a tall portrait layout while keeping the utility feel. (2026-04-28)

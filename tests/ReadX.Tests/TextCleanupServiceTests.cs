@@ -19,4 +19,12 @@ public sealed class TextCleanupServiceTests
 
         Assert.Equal("First paragraph.\nSecond paragraph.", clean);
     }
+
+    [Fact]
+    public void Clean_DoesNotRejoinHyphenAcrossParagraphBreak()
+    {
+        var clean = TextCleanupService.Clean("First-\r\n\r\nSecond");
+
+        Assert.Equal("First-\nSecond", clean);
+    }
 }

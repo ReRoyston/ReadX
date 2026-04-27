@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Fixed text cleanup so hyphenated fragments are rejoined only across single line breaks, preserving paragraph breaks as one newline.
 - Added v2 text cleanup pipeline with optional hyphenated-line-wrap rejoining, paragraph break preservation, whitespace normalization, and shared cleanup/tokenization result creation.
 - Moved hyphenated line-wrap handling out of `WordSplitter`; tokenization now only splits already-processed text on whitespace.
 - Added v2 raw-text history persistence with `HistoryItem`, `HistorySource`, `IHistoryStore`, and `JsonHistoryStore`.
