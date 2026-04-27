@@ -26,19 +26,20 @@ Single WPF project; modular layout, separated by concern.
 - `Services/RsvpPresenter` — owns RSVP overlay window lifecycle, positioning, keyboard routing, and binding player events to the view.
 - `Models/CaptureRegion`, `Models/RsvpSession` — plain data.
 - `Models/AppSettings`, `Models/HotkeyBinding` - persisted user preferences and shortcut bindings.
+- `Models/HistoryItem`, `Models/HistorySource` - raw capture/import history records.
 - `Services/JsonSettingsStore` - JSON settings persistence under user app data; saves through a same-directory temp file before replacing/moving into place.
+- `Services/JsonHistoryStore` - JSON raw-text history persistence under user app data; saves through a same-directory temp file before moving into place with overwrite.
 - `Tokenization/WordSplitter` — pure logic, text → ordered word tokens.
 
 Planned v2 additions:
 
-- `Models/HistoryItem`, `Models/HistorySource` - raw capture/import history records.
-- `Services/JsonHistoryStore` - JSON raw-text history persistence with retention limit.
 - `Text/TextCleanupService`, `Text/TextPipeline` - optional cleanup before tokenization for capture, import, and history replay.
 - `Rsvp/OrpCalculator`, `Rsvp/OrpWord` - pure ORP focus-letter calculation for overlay rendering.
 
 Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testable without WPF. OS-touching services sit behind small interfaces so they can be stubbed.
 
 ## Key Design Decisions
+- **v2 history persistence is temp-file based.** `JsonHistoryStore` serializes retained history to `history.json.tmp` in the same directory, then moves it into `history.json` with overwrite. Missing or unreadable history loads as empty, whitespace-only entries are not stored, duplicates are kept, and retention trims the oldest items. (2026-04-28)
 - **v2 settings persistence is temp-file based.** `JsonSettingsStore.SaveAsync` serializes to `settings.json.tmp` in the same directory, then uses `File.Replace` for existing settings files or `File.Move(..., overwrite: true)` for first save. This avoids truncating the existing settings file before serialization succeeds. (2026-04-28)
 - **v2 foundation-first build order.** Settings/history persistence and text pipeline come before UI replacement so capture, import, and history replay share the same contracts. (2026-04-28)
 - **v2 left-side navigation.** Main window moves from v1 single-pane to compact left tabs for Capture, Import, History, and Settings. This avoids a tall portrait layout while keeping the utility feel. (2026-04-28)

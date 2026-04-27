@@ -1,8 +1,16 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 1 settings persistence hardened
+**Current Phase:** v2 implementation - Task 2 raw-text history store complete
 
 ## Done
+- **v2 Task 2: Raw-text history store**
+  - Added `HistoryItem` and `HistorySource` models for raw capture/import history records
+  - Added `IHistoryStore` and `JsonHistoryStore` for JSON-backed history under app data
+  - History load returns newest-first valid raw-text entries and falls back to empty history when the file is missing or unreadable
+  - History add keeps duplicate raw-text entries, ignores whitespace-only text, and trims oldest entries to the configured limit
+  - History limit changes can trim existing history through `ApplyLimitAsync`
+  - History save writes through `history.json.tmp`, then moves into `history.json` with overwrite to avoid truncating a good history file before serialization succeeds
+  - Verified `dotnet test -m:1` passes: 24 passed, 0 failed
 - **v2 Task 1: Settings persistence**
   - Added `AppSettings` and `HotkeyBinding` models for persisted defaults and approved v2 hotkeys
   - Added app-data path provider and JSON settings store interfaces/implementation
@@ -138,7 +146,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 2 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 3 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues
