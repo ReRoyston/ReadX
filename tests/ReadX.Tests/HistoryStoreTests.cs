@@ -34,6 +34,18 @@ public sealed class HistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadAsync_WhenJsonInvalid_ReturnsEmptyHistory()
+    {
+        Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(Path.Combine(root, "history.json"), "{ broken json");
+        var store = new JsonHistoryStore(new TestPathProvider(root));
+
+        var items = await store.LoadAsync();
+
+        Assert.Empty(items);
+    }
+
+    [Fact]
     public async Task ApplyLimitAsync_TrimsExistingHistory()
     {
         var store = new JsonHistoryStore(new TestPathProvider(root));
@@ -48,16 +60,44 @@ public sealed class HistoryStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task AddAsync_WhenSuccessful_DoesNotLeaveTempFileAndWritesHistoryFile()
+    public async Task AddAsync_WhenConcurrent_KeepsAllEntriesWhenLimitAllows()
+    {
+        var store = new JsonHistoryStore(new TestPathProvider(root));
+        var rawTexts = Enumerable.Range(0, 20)
+            .Select(index => $"text {index}")
+            .ToArray();
+
+        await Task.WhenAll(rawTexts.Select(rawText => store.AddAsync(rawText, HistorySource.Import, limit: 50)));
+
+        var items = await store.LoadAsync();
+
+        Assert.Equal(20, items.Count);
+        Assert.Empty(rawTexts.Except(items.Select(item => item.RawText)));
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenSuccessful_DoesNotLeaveUniqueTempFilesAndWritesHistoryFile()
     {
         Directory.CreateDirectory(root);
-        await File.WriteAllTextAsync(Path.Combine(root, "history.json.tmp"), "stale temp");
         var store = new JsonHistoryStore(new TestPathProvider(root));
 
         await store.AddAsync("raw history", HistorySource.Import, limit: 20);
 
         Assert.True(File.Exists(Path.Combine(root, "history.json")));
-        Assert.False(File.Exists(Path.Combine(root, "history.json.tmp")));
+        Assert.Empty(Directory.GetFiles(root, "history.json.*.tmp"));
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenHistoryPathCannotBeRead_ThrowsIoFailure()
+    {
+        Directory.CreateDirectory(Path.Combine(root, "history.json"));
+        var store = new JsonHistoryStore(new TestPathProvider(root));
+
+        var exception = await Record.ExceptionAsync(() => store.AddAsync("new text", HistorySource.Import, limit: 20));
+
+        Assert.True(
+            exception is IOException or UnauthorizedAccessException,
+            $"Expected IO failure, got {exception?.GetType().FullName ?? "no exception"}.");
     }
 
     public void Dispose()

@@ -2,8 +2,9 @@
 
 ## [Unreleased]
 - Added v2 raw-text history persistence with `HistoryItem`, `HistorySource`, `IHistoryStore`, and `JsonHistoryStore`.
-- History saves now write through `history.json.tmp` before moving into `history.json`, preserving duplicate entries, trimming oldest entries by limit, ignoring whitespace-only text, and cleaning stale temp files after successful saves.
-- Added focused history-store coverage; verified `dotnet test -m:1` passes with 24 tests.
+- Hardened history persistence: store operations are serialized, writes use unique same-directory `history.json.*.tmp` files, invalid JSON still loads as empty, and IO/read failures now propagate instead of being treated as empty history.
+- History saves preserve duplicate entries, trim oldest entries by limit, ignore whitespace-only text, and clean temp files after successful saves.
+- Added focused history-store coverage; verified `dotnet test -m:1` passes with 27 tests.
 - Hardened v2 settings persistence: settings saves now write through `settings.json.tmp` and atomically replace/move into place, and non-finite window settings normalize to safe defaults.
 - Added focused settings-store coverage for temp-file cleanup and non-finite window value normalization; verified full test suite passes with 20 tests.
 - Updated architecture, project status, and journal docs with the approved v2 planning decisions and workflow lessons.

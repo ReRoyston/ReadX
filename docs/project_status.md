@@ -6,11 +6,13 @@
 - **v2 Task 2: Raw-text history store**
   - Added `HistoryItem` and `HistorySource` models for raw capture/import history records
   - Added `IHistoryStore` and `JsonHistoryStore` for JSON-backed history under app data
-  - History load returns newest-first valid raw-text entries and falls back to empty history when the file is missing or unreadable
+  - History load returns newest-first valid raw-text entries and falls back to empty history when the file is missing or contains invalid JSON
+  - History load propagates IO/read failures instead of treating them as empty history
   - History add keeps duplicate raw-text entries, ignores whitespace-only text, and trims oldest entries to the configured limit
   - History limit changes can trim existing history through `ApplyLimitAsync`
-  - History save writes through `history.json.tmp`, then moves into `history.json` with overwrite to avoid truncating a good history file before serialization succeeds
-  - Verified `dotnet test -m:1` passes: 24 passed, 0 failed
+  - History store operations are serialized with a store-level semaphore so concurrent adds keep all entries when the limit allows
+  - History save writes through unique same-directory `history.json.*.tmp` files, then moves into `history.json` with overwrite to avoid truncating a good history file before serialization succeeds
+  - Verified `dotnet test -m:1` passes: 27 passed, 0 failed
 - **v2 Task 1: Settings persistence**
   - Added `AppSettings` and `HotkeyBinding` models for persisted defaults and approved v2 hotkeys
   - Added app-data path provider and JSON settings store interfaces/implementation

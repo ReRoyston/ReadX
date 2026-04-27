@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using ReadX.Models;
 
 namespace ReadX.Services;
@@ -14,9 +15,62 @@ public sealed class JsonHistoryStore(IAppDataPathProvider pathProvider) : IHisto
     };
 
     private readonly string historyPath = Path.Combine(pathProvider.ReadXDirectory, "history.json");
+    private readonly SemaphoreSlim gate = new(1, 1);
 
     public async Task<IReadOnlyList<HistoryItem>> LoadAsync()
     {
+        await gate.WaitAsync();
+        try
+        {
+            return await LoadCoreAsync();
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task AddAsync(string rawText, HistorySource source, int limit)
+    {
+        if (string.IsNullOrWhiteSpace(rawText))
+        {
+            return;
+        }
+
+        await gate.WaitAsync();
+        try
+        {
+            var items = (await LoadCoreAsync()).ToList();
+            items.Insert(0, new HistoryItem(Guid.NewGuid(), DateTimeOffset.Now, source, rawText));
+            await SaveAsync(Trim(items, limit));
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task ApplyLimitAsync(int limit)
+    {
+        await gate.WaitAsync();
+        try
+        {
+            var items = await LoadCoreAsync();
+            await SaveAsync(Trim(items, limit));
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<IReadOnlyList<HistoryItem>> LoadCoreAsync()
+    {
+        if (Directory.Exists(historyPath))
+        {
+            throw new IOException($"History path is a directory: {historyPath}");
+        }
+
         if (!File.Exists(historyPath))
         {
             return [];
@@ -31,34 +85,16 @@ public sealed class JsonHistoryStore(IAppDataPathProvider pathProvider) : IHisto
                 .OrderByDescending(item => item.CreatedAt)
                 .ToArray();
         }
-        catch
+        catch (JsonException)
         {
             return [];
         }
     }
 
-    public async Task AddAsync(string rawText, HistorySource source, int limit)
-    {
-        if (string.IsNullOrWhiteSpace(rawText))
-        {
-            return;
-        }
-
-        var items = (await LoadAsync()).ToList();
-        items.Insert(0, new HistoryItem(Guid.NewGuid(), DateTimeOffset.Now, source, rawText));
-        await SaveAsync(Trim(items, limit));
-    }
-
-    public async Task ApplyLimitAsync(int limit)
-    {
-        var items = await LoadAsync();
-        await SaveAsync(Trim(items, limit));
-    }
-
     private async Task SaveAsync(IReadOnlyList<HistoryItem> items)
     {
         var directory = Path.GetDirectoryName(historyPath)!;
-        var tempPath = Path.Combine(directory, "history.json.tmp");
+        var tempPath = Path.Combine(directory, $"history.json.{Guid.NewGuid():N}.tmp");
 
         Directory.CreateDirectory(directory);
 
