@@ -1,1 +1,6 @@
 .claude/
+
+# .NET build artefacts
+bin/
+obj/
+*.user

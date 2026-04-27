@@ -1,13 +1,116 @@
 # Project Status
 
-**Current Phase:** Setup
+**Current Phase:** v1 - Core loop complete; pre-PR verification in progress
 
 ## Done
-- Initial project scaffold
+- Initial project scaffold (CLAUDE.md, AGENTS.md, docs/, .gitignore)
+- Branch `v1` created
+- Tech stack chosen and approved
+- v1 scope locked
+- UI design mockups approved (single-pane main window, no ORP for v1)
+- v1 defaults locked
+- **Phase 2 scaffold:**
+  - .NET 8.0.420 SDK confirmed at `C:\Program Files\dotnet\`; current PowerShell sees `dotnet` on PATH
+  - Git LFS 3.7.1 confirmed; `git lfs install` run for repo; `tessdata/*.traineddata` tracked via `.gitattributes`
+  - `ReadX.sln` created at repo root
+  - WPF project at `src/ReadX.csproj` (target `net8.0-windows`)
+  - xUnit test project at `tests/ReadX.Tests/ReadX.Tests.csproj` (target bumped to `net8.0-windows` so it can reference the WPF project)
+  - Both projects added to `ReadX.sln`; test project references `src/ReadX.csproj`
+  - `MainWindow.xaml` and `MainWindow.xaml.cs` physically moved from `src/` to `src/Views/`
+  - Moved `MainWindow` wiring fixed: namespace is `ReadX.Views`, `App.xaml` starts `Views/MainWindow.xaml`, and the window title is `ReadX`
+  - Verified `dotnet build --no-restore -m:1` succeeds after project-level restore
+  - Renamed placeholder xUnit test from `UnitTest1` to `SmokeTest`; verified `dotnet test tests\ReadX.Tests\ReadX.Tests.csproj --no-restore -m:1` passes
+  - Installed approved NuGet packages in `src/ReadX.csproj`: `WPF-UI` 4.2.0 and `Tesseract` 5.2.0
+  - Downloaded `tessdata/eng.traineddata` from pinned official `tesseract-ocr/tessdata` commit `ced78752cc61322fb554c280d13360b35b8684e4`
+  - `eng.traineddata` SHA256: `DAA0C97D651C19FBA3B25E81317CD697E9908C8208090C94C3905381C23FC047`; size: `23466654` bytes
+  - Added `src/ReadX.csproj` content wiring so `tessdata/*.traineddata` copies to `src/bin/Debug/net8.0-windows/tessdata/`
+  - Verified copied output `eng.traineddata` exists and matches SHA256 `DAA0C97D651C19FBA3B25E81317CD697E9908C8208090C94C3905381C23FC047`
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1` passes: 1 passed, 0 failed
+  - Verified `dotnet run --project src\ReadX.csproj --no-build` launch smoke: app stayed running after startup
+  - `.gitignore` already ignores `bin/`, `obj/`, and `*.user`
+  - Plan concerns resolved: hotkey registration after `SourceInitialized`, nullable OCR dependency for degraded mode, `RsvpPresenter` overlay ownership, explicit Windows drawing support for GDI capture, pinned tessdata download rule, and physical mouse-down/up coordinates for region select
+- **Phase 3: Tokenization + RsvpPlayer:**
+  - Added `src/Tokenization/WordSplitter.cs` with whitespace tokenization and hyphenated line-wrap rejoining
+  - Added `src/Services/ITicker.cs` and `src/Services/DispatcherTicker.cs`
+  - Added `src/Services/RsvpPlayer.cs` with WPM clamp, play/pause/cancel, word-change, and completion behavior
+  - Added `src/Models/RsvpSession.cs`
+  - Added focused xUnit coverage in `WordSplitterTests`, `RsvpPlayerTests`, and `Fakes/FakeTicker`
+  - Verified `dotnet test -m:1` passes: 13 passed, 0 failed
+- **Phase 4: RsvpOverlay window:**
+  - Added `src/Views/RsvpOverlay.xaml` / `.cs` for the borderless topmost RSVP playback window
+  - Added `src/Services/IRsvpPresenter.cs` and `src/Services/RsvpPresenter.cs` for overlay lifecycle, positioning, playback binding, and keyboard routing
+  - Added `src/Models/CaptureRegion.cs` early because the Phase 4 presenter contract already depends on it; this keeps the Phase 5 model shape unchanged
+  - `Space` routes to pause/resume and `Esc` routes to cancel
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
+- **Phase 5: RegionSelectOverlay window:**
+  - Added `src/app.manifest` with Per-Monitor V2 DPI awareness and wired it in `src/ReadX.csproj`
+  - Added `src/Views/RegionSelectOverlay.xaml` / `.cs` as a borderless transparent topmost virtual-screen overlay
+  - Added `src/Services/IRegionSelector.cs` and `src/Services/RegionSelector.cs`
+  - Drag preview uses WPF DIPs; final `CaptureRegion` uses physical mouse-down/up cursor points via `GetCursorPos`
+  - `Esc` cancels; click without a real drag returns `null`
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
+  - User-confirmed region drag path works through the app flow
+- **Phase 6: ScreenCaptureService:**
+  - Added `src/Services/IScreenCaptureService.cs`
+  - Added `src/Services/ScreenCaptureService.cs` using `Graphics.CopyFromScreen`
+  - Enabled `<UseWindowsForms>true</UseWindowsForms>` and `<DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>` in `src/ReadX.csproj` for Windows drawing support without WinForms namespace ambiguity
+  - Capture inputs use the existing physical-pixel `CaptureRegion` contract
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
+  - User-confirmed capture alignment works through the app flow, including secondary-monitor and DPI checks
+- **Phase 7: OcrService:**
+  - Added `src/Services/IOcrService.cs`
+  - Added `src/Services/OcrService.cs` using `TesseractEngine`
+  - Constructor validates the tessdata directory and expected language file before engine creation
+  - `Recognise` converts `Bitmap` to a `Pix` via in-memory PNG encoding and processes with `PageSegMode.Auto`
+  - Uses `EngineMode.Default` and English `eng.traineddata`
+  - Verified output contains `Tesseract.dll`, native `x64` Tesseract/Leptonica binaries, and `tessdata/eng.traineddata`
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
+  - User-confirmed OCR works through the app flow on clean computer-written text
+- **Phase 8: HotkeyService:**
+  - Added `src/Services/IHotkeyService.cs`
+  - Added `src/Services/HotkeyService.cs` using Win32 `RegisterHotKey` / `UnregisterHotKey`
+  - Added `src/Services/HotkeyMapping.cs` for WPF `ModifierKeys` / `Key` to Win32 modifier and virtual-key values
+  - Hotkey messages are handled through a WPF `HwndSource` hook on the main window HWND
+  - `SetBusy(bool)` drops callbacks while capture/playback is in flight
+  - Registration failure returns `false` so the app can keep manual capture available
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
+  - User-confirmed hotkey registration, busy guard, release cleanup, and hotkey-conflict degraded mode work
+- **Phase 9: MainWindow shell:**
+  - Added WPF UI theme/control dictionaries in `src/App.xaml`
+  - Replaced the empty shell with the v1 single-pane layout: Capture, hotkey status, OCR status, WPM slider, last OCR preview, Replay last, and status footer
+  - Added `MainWindow` event API for Capture, Replay, and WPM changes
+  - Added `MainWindow` state setters for busy, hotkey availability, OCR availability, replay availability, last OCR text, and status
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
+  - Verified `dotnet run --project src\ReadX.csproj --no-build` launch smoke: app stayed running after startup
+- **Phase 10: End-to-end wiring:**
+  - Added `src/AppController.cs` as the capture/OCR/playback state machine
+  - Added `src/Models/AppState.cs`
+  - Updated `src/Models/RsvpSession.cs` to cache words, capture region, and raw OCR text
+  - Replaced `StartupUri` with explicit `App.OnStartup` composition root in `src/App.xaml.cs`
+  - Composed selector, capture, OCR, RSVP player, presenter, hotkey service, controller, and main window
+  - OCR degraded mode keeps the app open and disables Capture if tessdata/engine construction fails
+  - Registered `Ctrl+Shift+R` after `MainWindow.SourceInitialized`
+  - Wired Capture, Replay last, and WPM changes from `MainWindow` to `AppController`
+  - Fixed virtual-screen coordinate use in `ScreenCaptureService` and `RsvpPresenter`
+  - Verified `dotnet build -m:1` passes with zero warnings
+  - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
+  - Verified `dotnet run --project src\ReadX.csproj --no-build` wired startup smoke: app stayed running after startup
+  - User-confirmed full manual golden path works, including WPM replay speed, secondary monitor, 125% / 150% display scaling, and hotkey-conflict degraded mode
+- **Documentation:**
+  - Added `docs/journal.md` entry for v1 build lessons and issues
+  - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-- Decide tech stack
-- Define core features
+1. Commit and push the pre-PR documentation cleanup.
+2. Create the `v1` pull request into `main`.
 
 ## Known Issues
-None
+- None for the confirmed Phase 10 golden path.
+- **Shell PATH note.** Current PowerShell sees `dotnet`. Older bash sessions may still need a terminal restart if they do not see `C:\Program Files\dotnet`.
