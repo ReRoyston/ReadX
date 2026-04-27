@@ -70,7 +70,7 @@ Key separations:
 Per CLAUDE.md "one step at a time", we stop after each phase, summarise, and wait for "continue". Package installs **require explicit approval** when reached.
 
 1. **Design** ✅ — ASCII/text mockups locked, defaults locked, docs updated.
-2. **Scaffold** — solution, WPF project, xUnit project, NuGet packages (approval gate), tessdata, csproj wiring. *Currently paused mid-phase — see detailed section below.*
+2. **Scaffold** — solution, WPF project, xUnit project, NuGet packages, tessdata, csproj wiring.
 3. **Tokenization + RsvpPlayer** — pure-logic word splitter and WPM-driven word stream. Unit-tested via `ITicker` seam.
 4. **RsvpOverlay window** — renders one word at a time from `RsvpPlayer`. Visual polish per design.
 5. **RegionSelectOverlay window** — full virtual-screen transparent window with drag-rect and `Esc` cancel. Adds `app.manifest` (PerMonitorV2).
@@ -148,10 +148,10 @@ History list · settings persistence · hotkey rebinding UI · multi-language OC
    - `src/bin/Debug/net8.0-windows/tessdata/eng.traineddata` exists.
    - `dotnet run --project src/ReadX.csproj --no-build` stays running after startup smoke test.
 7. Update `docs/changelog.md` and `docs/project_status.md`. **Done.**
-8. Commit on `v1` (no push — release-time only). **Next.**
+8. Commit on `v1` (no push — release-time only). **Done.**
 
 ### Approval gates remaining in Phase 2
-- NuGet package install (`Wpf.Ui`, `Tesseract`) — explicit user approval before `dotnet add`.
+- None.
 
 ---
 
@@ -325,7 +325,7 @@ And in `src/ReadX.csproj`: `<ApplicationManifest>app.manifest</ApplicationManife
 ### Verification gate to leave Phase 5
 - `dotnet build -m:1` passes with zero warnings. **Done.**
 - `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
-- Manual drag-path verification is deferred until the selector is reachable through the app flow.
+- Manual drag-path verification is covered by the Phase 10 confirmed golden path; secondary-monitor and DPI checks remain tracked in the Phase 10 pre-PR checklist.
 
 ---
 
@@ -360,7 +360,7 @@ public interface IScreenCaptureService
 ### Verification gate to leave Phase 6
 - `dotnet build -m:1` passes with zero warnings. **Done.**
 - `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
-- Manual: capture a known region (e.g. a Notepad window), save bitmap to temp file, eyeball it → matches expectation at 100%, 125%, 150% scaling on primary and secondary monitors. **Deferred until capture is reachable through the app flow.**
+- Manual: capture a known region through the app flow and eyeball it. Primary-monitor, secondary-monitor, and 125% / 150% DPI checks are user-confirmed.
 - No unit tests (pure I/O against a screen — covered by manual golden path).
 
 ---
@@ -405,7 +405,7 @@ public sealed class OcrService : IOcrService
 ### Verification gate to leave Phase 7
 - `dotnet build -m:1` passes with zero warnings. **Done.**
 - `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
-- Manual: screenshot a known paragraph in Notepad, run through `OcrService`, eyeball the string. Should be near-perfect for clean computer-written text. **Deferred until OCR is reachable through the app flow.**
+- Manual: screenshot a known paragraph through the app flow and eyeball the string. Clean Notepad OCR is confirmed through the Phase 10 golden path.
 - No unit tests (pure I/O against an external library — covered by manual).
 
 ---
@@ -441,11 +441,11 @@ public interface IHotkeyService : IDisposable
 ### Verification gate to leave Phase 8
 - `dotnet build -m:1` passes with zero warnings. **Done.**
 - `dotnet test -m:1 --no-build` passes with 13 tests. **Done.**
-- Manual: launch app → hotkey registration happens after `MainWindow.SourceInitialized`; no startup race or missing HWND. **Deferred until app wiring.**
-- Manual: press `Ctrl+Shift+R` → callback fires. **Deferred until app wiring.**
-- Manual: press it again while busy → silently ignored. **Deferred until app wiring.**
-- Manual: launch with another app already holding `Ctrl+Shift+R` (e.g. AutoHotkey) → app starts, hotkey label red, manual capture still works. **Deferred until app wiring.**
-- Cleanup: close app → hotkey released (reproducible by registering same combo with another tool afterwards). **Deferred until app wiring.**
+- Manual: launch app -> hotkey registration happens after `MainWindow.SourceInitialized`; no startup race or missing HWND. **Confirmed through Phase 10 golden path.**
+- Manual: press `Ctrl+Shift+R` -> callback fires. **Confirmed through Phase 10 golden path.**
+- Manual: press it again while busy -> silently ignored. **User-confirmed.**
+- Manual: launch with another app already holding `Ctrl+Shift+R` (e.g. AutoHotkey) -> app starts, hotkey label red, manual capture still works. **User-confirmed.**
+- Cleanup: close app -> hotkey released (reproducible by registering same combo with another tool afterwards). **User-confirmed.**
 
 ---
 
@@ -547,11 +547,11 @@ Manual golden path:
 3. Drag rectangle around a paragraph in Notepad → RSVP overlay plays words above the region at 300 WPM. **User-confirmed.**
 4. `Space` pauses, `Space` resumes, `Esc` cancels. **User-confirmed.**
 5. `Replay last` plays the same words again. **User-confirmed.**
-6. Change WPM slider to 500, `Replay last` → faster playback.
-7. Repeat steps 2–3 on a secondary monitor.
-8. Repeat steps 2–3 at 125% display scaling — capture aligns with drag (PMv2 canary).
-9. Repeat steps 2–3 at 150% display scaling on the secondary monitor (mixed-DPI canary).
-10. Quit and relaunch with `Ctrl+Shift+R` already held by another tool → hotkey label red, manual Capture button still works.
+6. Change WPM slider to 500, `Replay last` -> faster playback. **User-confirmed.**
+7. Repeat steps 2-3 on a secondary monitor. **User-confirmed.**
+8. Repeat steps 2-3 at 125% display scaling - capture aligns with drag (PMv2 canary). **User-confirmed.**
+9. Repeat steps 2-3 at 150% display scaling on the secondary monitor (mixed-DPI canary). **User-confirmed.**
+10. Quit and relaunch with `Ctrl+Shift+R` already held by another tool -> hotkey label red, manual Capture button still works. **User-confirmed.**
 
 ### Approval gates remaining
 - None — Phase 10 is wiring only, no new packages.
@@ -559,4 +559,4 @@ Manual golden path:
 ---
 
 ## Phase 11 — Release
-Push `v1`, open PR, merge via PR on GitHub, pull locally, tag `v1.0.0`. Per CLAUDE.md: never merge to main locally. Update `docs/changelog.md` with the release entry; bump `docs/project_status.md` to "v1 shipped".
+`v1` is already pushed to `origin/v1`. Next release step is to open a PR into `main`, merge via PR on GitHub, pull locally, then tag `v1.0.0`. Per CLAUDE.md: never merge to main locally. Update `docs/changelog.md` with the release entry and bump `docs/project_status.md` to "v1 shipped" after the PR is merged.

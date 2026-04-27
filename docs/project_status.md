@@ -1,6 +1,6 @@
 # Project Status
 
-**Current Phase:** v1 - Core loop (Phase 10 complete, pending commit)
+**Current Phase:** v1 - Core loop complete; pre-PR verification in progress
 
 ## Done
 - Initial project scaffold (CLAUDE.md, AGENTS.md, docs/, .gitignore)
@@ -52,7 +52,7 @@
   - `Esc` cancels; click without a real drag returns `null`
   - Verified `dotnet build -m:1` passes with zero warnings
   - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
-  - Manual drag-path verification is deferred until the selector is wired into the app flow
+  - User-confirmed region drag path works through the app flow
 - **Phase 6: ScreenCaptureService:**
   - Added `src/Services/IScreenCaptureService.cs`
   - Added `src/Services/ScreenCaptureService.cs` using `Graphics.CopyFromScreen`
@@ -60,7 +60,7 @@
   - Capture inputs use the existing physical-pixel `CaptureRegion` contract
   - Verified `dotnet build -m:1` passes with zero warnings
   - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
-  - Manual image eyeball verification is deferred until capture is wired into the app flow
+  - User-confirmed capture alignment works through the app flow, including secondary-monitor and DPI checks
 - **Phase 7: OcrService:**
   - Added `src/Services/IOcrService.cs`
   - Added `src/Services/OcrService.cs` using `TesseractEngine`
@@ -70,7 +70,7 @@
   - Verified output contains `Tesseract.dll`, native `x64` Tesseract/Leptonica binaries, and `tessdata/eng.traineddata`
   - Verified `dotnet build -m:1` passes with zero warnings
   - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
-  - Manual OCR text eyeball verification is deferred until OCR is wired into the app flow
+  - User-confirmed OCR works through the app flow on clean computer-written text
 - **Phase 8: HotkeyService:**
   - Added `src/Services/IHotkeyService.cs`
   - Added `src/Services/HotkeyService.cs` using Win32 `RegisterHotKey` / `UnregisterHotKey`
@@ -80,7 +80,7 @@
   - Registration failure returns `false` so the app can keep manual capture available
   - Verified `dotnet build -m:1` passes with zero warnings
   - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
-  - Manual hotkey verification is deferred until registration is wired after `MainWindow.SourceInitialized`
+  - User-confirmed hotkey registration, busy guard, release cleanup, and hotkey-conflict degraded mode work
 - **Phase 9: MainWindow shell:**
   - Added WPF UI theme/control dictionaries in `src/App.xaml`
   - Replaced the empty shell with the v1 single-pane layout: Capture, hotkey status, OCR status, WPM slider, last OCR preview, Replay last, and status footer
@@ -102,13 +102,15 @@
   - Verified `dotnet build -m:1` passes with zero warnings
   - Verified `dotnet test -m:1 --no-build` passes: 13 passed, 0 failed
   - Verified `dotnet run --project src\ReadX.csproj --no-build` wired startup smoke: app stayed running after startup
-  - User-confirmed manual golden path works
+  - User-confirmed full manual golden path works, including WPM replay speed, secondary monitor, 125% / 150% display scaling, and hotkey-conflict degraded mode
 - **Documentation:**
   - Added `docs/journal.md` entry for v1 build lessons and issues
+  - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Commit journal documentation update on `v1` branch
+1. Commit and push the pre-PR documentation cleanup.
+2. Create the `v1` pull request into `main`.
 
 ## Known Issues
-- None for Phase 10.
+- None for the confirmed Phase 10 golden path.
 - **Shell PATH note.** Current PowerShell sees `dotnet`. Older bash sessions may still need a terminal restart if they do not see `C:\Program Files\dotnet`.
