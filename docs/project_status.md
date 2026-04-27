@@ -9,8 +9,8 @@
   - Added `TextPipeline.BuildWords` to return raw text, processed text, and tokenized words from one shared path
   - Moved hyphenated line-wrap responsibility out of `WordSplitter`; `WordSplitter` now only splits non-empty whitespace-delimited tokens
   - Added focused coverage for cleanup behavior, pipeline cleanup toggle behavior, and skipped-cleanup tokenization
-  - Verified focused text/tokenizer tests pass: 8 passed, 0 failed
-  - Verified `dotnet test -m:1` passes: 31 passed, 0 failed
+  - Verified focused text/tokenizer tests pass: 9 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 32 passed, 0 failed
 - **v2 Task 2: Raw-text history store**
   - Added `HistoryItem` and `HistorySource` models for raw capture/import history records
   - Added `IHistoryStore` and `JsonHistoryStore` for JSON-backed history under app data
