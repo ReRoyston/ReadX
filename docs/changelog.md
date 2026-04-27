@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- Added v2 text cleanup pipeline with optional hyphenated-line-wrap rejoining, paragraph break preservation, whitespace normalization, and shared cleanup/tokenization result creation.
+- Moved hyphenated line-wrap handling out of `WordSplitter`; tokenization now only splits already-processed text on whitespace.
 - Added v2 raw-text history persistence with `HistoryItem`, `HistorySource`, `IHistoryStore`, and `JsonHistoryStore`.
 - Hardened history persistence: store operations are serialized, writes use unique same-directory `history.json.*.tmp` files, invalid JSON still loads as empty, and IO/read failures now propagate instead of being treated as empty history.
 - History saves preserve duplicate entries, trim oldest entries by limit, ignore whitespace-only text, and clean temp files after successful saves.

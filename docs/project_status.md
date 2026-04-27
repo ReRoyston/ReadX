@@ -1,8 +1,16 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 2 raw-text history store complete
+**Current Phase:** v2 implementation - Task 3 text cleanup pipeline complete
 
 ## Done
+- **v2 Task 3: Text cleanup and shared pipeline**
+  - Added `TextCleanupService` for optional cleanup before tokenization
+  - Cleanup rejoins hyphenated line wraps, collapses horizontal whitespace, converts single line wraps to spaces, and preserves paragraph breaks as single readable `\n` separators
+  - Added `TextPipeline.BuildWords` to return raw text, processed text, and tokenized words from one shared path
+  - Moved hyphenated line-wrap responsibility out of `WordSplitter`; `WordSplitter` now only splits non-empty whitespace-delimited tokens
+  - Added focused coverage for cleanup behavior, pipeline cleanup toggle behavior, and skipped-cleanup tokenization
+  - Verified focused text/tokenizer tests pass: 8 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 31 passed, 0 failed
 - **v2 Task 2: Raw-text history store**
   - Added `HistoryItem` and `HistorySource` models for raw capture/import history records
   - Added `IHistoryStore` and `JsonHistoryStore` for JSON-backed history under app data
@@ -148,7 +156,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 3 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 4 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues
