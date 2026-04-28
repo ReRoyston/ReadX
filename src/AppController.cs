@@ -107,11 +107,19 @@ public sealed class AppController
             return;
         }
 
+        var session = LastSession;
+        var region = session.Region;
+        if (region is null)
+        {
+            SetIdle("No capture region available for replay.");
+            return;
+        }
+
         hotkey.SetBusy(true);
 
         try
         {
-            await PlayAsync(LastSession.Words, LastSession.Region);
+            await PlayAsync(session.Words, region);
             SetIdle("Ready.");
         }
         finally

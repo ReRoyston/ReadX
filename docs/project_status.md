@@ -7,9 +7,12 @@
   - Added `RsvpPlayer.Restart()` to stop the current ticker, reset the index, return to `Playing`, and restart playback from the first word on the next tick
   - Expanded `RsvpSession` to store words, optional capture region, raw text, processed text, and history source metadata
   - Preserved the existing capture-session constructor and `Text` compatibility accessor for current app call sites
+  - Guarded `ReplayLastAsync` so sessions without capture regions return to idle with a clear status instead of calling the current presenter contract with `null`
   - Added focused coverage for restarting after playback has advanced
+  - Added focused coverage for replay sessions that do not have a capture region
   - Verified focused playback tests pass: 9 passed, 0 failed
-  - Verified `dotnet test -m:1` passes: 35 passed, 0 failed
+  - Verified focused replay guard test passes: 1 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 36 passed, 0 failed
 - **v2 Task 3: Text cleanup and shared pipeline**
   - Added `TextCleanupService` for optional cleanup before tokenization
   - Cleanup normalizes input to Unicode Form C, rejoins hyphenated fragments only across single line breaks, collapses horizontal whitespace, converts single line wraps to spaces, avoids in-band paragraph sentinel characters, and preserves paragraph breaks as single readable `\n` separators
