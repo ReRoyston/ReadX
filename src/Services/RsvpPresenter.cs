@@ -26,6 +26,7 @@ public sealed class RsvpPresenter : IRsvpPresenter
         PositionOverlay(playbackOverlay, region);
 
         var detached = false;
+        var closingFromCompletion = false;
 
         void OnWordChanged(string word)
         {
@@ -59,6 +60,7 @@ public sealed class RsvpPresenter : IRsvpPresenter
 
         void OnCompleted()
         {
+            closingFromCompletion = true;
             DetachHandlers();
             Close();
         }
@@ -75,6 +77,11 @@ public sealed class RsvpPresenter : IRsvpPresenter
         playbackOverlay.CancelRequested += OnCancelRequested;
         playbackOverlay.Closed += (_, _) =>
         {
+            if (!closingFromCompletion)
+            {
+                player.Cancel();
+            }
+
             DetachHandlers();
             activePlayback?.TrySetResult();
             activePlayback = null;

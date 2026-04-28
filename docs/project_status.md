@@ -9,10 +9,13 @@
   - Highlighted the focus letter in red while preserving the existing progress bar and footer
   - Routed `R` from the RSVP overlay to `RsvpPlayer.Restart()`
   - Kept presenter lifecycle cleanup explicit by detaching player and overlay event handlers on completion, cancel, and close
+  - Hardened raw overlay close and presenter close so active playback is cancelled, while normal completion remains `Finished`
   - Added focused ORP calculator coverage
+  - Added focused presenter lifecycle coverage for raw close cancellation and natural completion state preservation
   - Verified focused ORP tests pass: 6 passed, 0 failed
+  - Verified focused presenter lifecycle tests pass: 2 passed, 0 failed
   - Verified `dotnet build -m:1` passes: 0 errors, 4 NU1900 vulnerability-feed warnings from unavailable `https://api.nuget.org/v3/index.json`
-  - Verified `dotnet test -m:1` passes: 42 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 44 passed, 0 failed
 - **v2 Task 4: Restartable RSVP playback**
   - Added `RsvpPlayer.Restart()` to stop the current ticker, reset the index, return to `Playing`, and restart playback from the first word on the next tick
   - Expanded `RsvpSession` to store words, optional capture region, raw text, processed text, and history source metadata

@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 - Added classic ORP overlay rendering with a focused red letter, left/right word segments, and `R` restart routing from the RSVP overlay.
+- Hardened RSVP overlay close handling so raw window close and presenter close stop active playback without converting natural completion back to idle.
 - Guarded replay so sessions without a capture region report a status message instead of entering capture-region playback.
 - Added restartable RSVP playback and expanded `RsvpSession` to carry raw text, processed text, optional capture region, and history source metadata.
 - Hardened text cleanup by removing the in-band paragraph sentinel and normalizing input to Unicode Form C before cleanup.
