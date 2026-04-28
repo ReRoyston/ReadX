@@ -1,8 +1,15 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 3 text cleanup pipeline complete
+**Current Phase:** v2 implementation - Task 4 restartable playback complete
 
 ## Done
+- **v2 Task 4: Restartable RSVP playback**
+  - Added `RsvpPlayer.Restart()` to stop the current ticker, reset the index, return to `Playing`, and restart playback from the first word on the next tick
+  - Expanded `RsvpSession` to store words, optional capture region, raw text, processed text, and history source metadata
+  - Preserved the existing capture-session constructor and `Text` compatibility accessor for current app call sites
+  - Added focused coverage for restarting after playback has advanced
+  - Verified focused playback tests pass: 9 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 35 passed, 0 failed
 - **v2 Task 3: Text cleanup and shared pipeline**
   - Added `TextCleanupService` for optional cleanup before tokenization
   - Cleanup normalizes input to Unicode Form C, rejoins hyphenated fragments only across single line breaks, collapses horizontal whitespace, converts single line wraps to spaces, avoids in-band paragraph sentinel characters, and preserves paragraph breaks as single readable `\n` separators
@@ -156,7 +163,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 4 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 5 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues

@@ -22,7 +22,7 @@ Single WPF project; modular layout, separated by concern.
 - `Services/HotkeyService` — Win32 `RegisterHotKey` via P/Invoke, registered against the main window HWND after `SourceInitialized`.
 - `Services/ScreenCaptureService` — DPI-aware capture of the chosen rect to `Bitmap`.
 - `Services/OcrService` — wrapper around the `Tesseract` NuGet package; image → text.
-- `Services/RsvpPlayer` — WPM-driven word stream; pause/resume; `DispatcherTimer` for UI tick.
+- `Services/RsvpPlayer` — WPM-driven word stream; pause/resume/restart; `DispatcherTimer` for UI tick.
 - `Services/RsvpPresenter` — owns RSVP overlay window lifecycle, positioning, keyboard routing, and binding player events to the view.
 - `Models/CaptureRegion`, `Models/RsvpSession` — plain data.
 - `Models/AppSettings`, `Models/HotkeyBinding` - persisted user preferences and shortcut bindings.
@@ -42,6 +42,7 @@ Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testabl
 ## Key Design Decisions
 - **v2 history persistence is serialized and temp-file based.** `JsonHistoryStore` serializes public operations with a store-level semaphore, writes retained history to unique `history.json.*.tmp` files in the same directory, then moves into `history.json` with overwrite. Missing or invalid JSON history loads as empty; IO/read failures propagate so writes do not overwrite a real history file after a transient read failure. Whitespace-only entries are not stored, duplicates are kept, and retention trims the oldest items. (2026-04-28)
 - **v2 text cleanup is a shared optional pipeline step.** `TextCleanupService` first normalizes input to Unicode Form C, then rejoins hyphenated fragments only across single line breaks, preserves paragraph breaks as one newline, and handles whitespace cleanup before `WordSplitter` runs. It does not use in-band sentinel characters, so U+0001 is not treated as an internal paragraph marker. `TextPipeline` returns raw text, processed text, and words so capture, import, and history replay can share one processing path while respecting the cleanup toggle. (2026-04-28)
+- **v2 playback sessions are restartable and metadata-aware.** `RsvpPlayer.Restart()` resets playback to before the first word and starts the ticker so the next tick emits the first word again. `RsvpSession` now carries raw text, processed text, optional capture region, and source metadata so capture, import, and history flows can share one session contract. (2026-04-28)
 - **v2 settings persistence is temp-file based.** `JsonSettingsStore.SaveAsync` serializes to `settings.json.tmp` in the same directory, then uses `File.Replace` for existing settings files or `File.Move(..., overwrite: true)` for first save. This avoids truncating the existing settings file before serialization succeeds. (2026-04-28)
 - **v2 foundation-first build order.** Settings/history persistence and text pipeline come before UI replacement so capture, import, and history replay share the same contracts. (2026-04-28)
 - **v2 left-side navigation.** Main window moves from v1 single-pane to compact left tabs for Capture, Import, History, and Settings. This avoids a tall portrait layout while keeping the utility feel. (2026-04-28)

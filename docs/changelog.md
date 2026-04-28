@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Added restartable RSVP playback and expanded `RsvpSession` to carry raw text, processed text, optional capture region, and history source metadata.
 - Hardened text cleanup by removing the in-band paragraph sentinel and normalizing input to Unicode Form C before cleanup.
 - Fixed text cleanup so hyphenated fragments are rejoined only across single line breaks, preserving paragraph breaks as one newline.
 - Added v2 text cleanup pipeline with optional hyphenated-line-wrap rejoining, paragraph break preservation, whitespace normalization, and shared cleanup/tokenization result creation.
