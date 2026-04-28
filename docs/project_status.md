@@ -1,8 +1,16 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 7 controller integration complete
+**Current Phase:** v2 implementation - Task 8 left-tab main window UI complete
 
 ## Done
+- **v2 Task 8: Left-tab main window UI**
+  - Replaced the v1 single-pane main window with compact left tabs for Capture, Import, History, and Settings
+  - Capture now exposes capture, replay-last, WPM, pause/resume, restart, cancel, OCR/hotkey status, and last-text display controls
+  - Import provides a large text box with Play Text and Clear actions
+  - History displays the current history limit and builds timestamp/source/preview rows with replay buttons tagged by `HistoryItem`
+  - Settings exposes cleanup, history limit, and hotkey summary controls
+  - `MainWindow` now exposes the Task 9 event API for import/history replay/playback/settings changes while keeping the existing capture/replay/WPM compatibility API
+  - Added focused STA tests for settings application/readback, history replay button tagging, and hotkey registration summaries
 - **v2 Task 7: Controller integration for capture, import, history replay, and settings**
   - Added a v2 `AppController` constructor that accepts settings/history stores, current settings, and loaded history while preserving the existing constructor for current composition
   - Exposed controller `Settings` and `History` state
@@ -203,7 +211,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 8 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 9 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues

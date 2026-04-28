@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Replaced the main window with the v2 compact left-tab layout for Capture, Import, History, and Settings, including import playback, history replay buttons, settings controls, hotkey summaries, and compatibility state setters for Task 9 composition.
 - Hardened Task 7 controller workflows so history persistence failures stop playback with a useful idle status, presenter failures cancel/close playback, and import/history/replay-last setup cannot be re-entered before playback starts.
 - Wired v2 controller workflows for capture, import, history replay, regionless replay-last, playback controls, exposed settings/history state, and raw-history updates through the shared text pipeline.
 - Updated `IRsvpPresenter`/`RsvpPresenter` to accept nullable capture regions and center the overlay for import/history playback.
