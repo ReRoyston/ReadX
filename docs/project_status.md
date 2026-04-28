@@ -1,8 +1,20 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 6 multi-hotkey service complete
+**Current Phase:** v2 implementation - Task 7 controller integration complete
 
 ## Done
+- **v2 Task 7: Controller integration for capture, import, history replay, and settings**
+  - Added a v2 `AppController` constructor that accepts settings/history stores, current settings, and loaded history while preserving the existing constructor for current composition
+  - Exposed controller `Settings` and `History` state
+  - Added import and history replay workflows that share `TextPipeline` cleanup/tokenization
+  - Routed capture OCR text through the same pipeline and stores raw capture/import text in history before playback
+  - Kept duplicate history entries and avoided adding new history entries when replaying an existing history item
+  - Enabled replay-last for import/history sessions with no capture region
+  - Added controller playback controls for pause/resume, restart, and cancel
+  - Updated `IRsvpPresenter` and `RsvpPresenter` so regionless sessions play centered while capture-region placement remains unchanged
+  - Added in-memory settings/history test fakes and focused controller/presenter coverage
+  - Verified focused controller/presenter tests pass: 10 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 57 passed, 0 failed, with NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
 - **v2 Task 6: Multi-hotkey service**
   - Expanded `IHotkeyService` with `HotkeyAction`, `HotkeyRegistration`, and `RegisterAll(...)` for action-specific configurable bindings
   - Updated `HotkeyService` to register one Win32 id per action from base id `0x5258`, track only successfully registered ids, and unregister all active ids on cleanup
@@ -189,7 +201,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 7 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 8 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues

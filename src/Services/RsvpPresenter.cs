@@ -9,7 +9,7 @@ public sealed class RsvpPresenter : IRsvpPresenter
     private RsvpOverlay? overlay;
     private TaskCompletionSource? activePlayback;
 
-    public Task PlayAsync(RsvpPlayer player, CaptureRegion region)
+    public Task PlayAsync(RsvpPlayer player, CaptureRegion? region)
     {
         ArgumentNullException.ThrowIfNull(player);
 
@@ -112,7 +112,7 @@ public sealed class RsvpPresenter : IRsvpPresenter
         closing.Close();
     }
 
-    private static void PositionOverlay(Window window, CaptureRegion region)
+    private static void PositionOverlay(Window window, CaptureRegion? region)
     {
         const double margin = 12;
 
@@ -120,6 +120,14 @@ public sealed class RsvpPresenter : IRsvpPresenter
         var virtualTop = SystemParameters.VirtualScreenTop;
         var virtualRight = virtualLeft + SystemParameters.VirtualScreenWidth;
         var virtualBottom = virtualTop + SystemParameters.VirtualScreenHeight;
+
+        if (region is null)
+        {
+            window.Left = SystemParameters.WorkArea.Left + (SystemParameters.WorkArea.Width - window.Width) / 2d;
+            window.Top = SystemParameters.WorkArea.Top + (SystemParameters.WorkArea.Height - window.Height) / 2d;
+            return;
+        }
+
         var absoluteRegionLeft = virtualLeft + region.X;
         var absoluteRegionTop = virtualTop + region.Y;
 

@@ -85,4 +85,41 @@ public sealed class RsvpPresenterTests
             throw failure;
         }
     }
+
+    [Fact]
+    public void PlayAsync_WhenRegionIsNull_StartsPlaybackWithDefaultOverlayPosition()
+    {
+        Exception? failure = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var ticker = new FakeTicker();
+                var player = new RsvpPlayer(ticker);
+                var presenter = new RsvpPresenter();
+
+                player.Load(["one", "two"], 300);
+                var playback = presenter.PlayAsync(player, null);
+
+                Assert.Equal(PlayerState.Playing, player.State);
+                Assert.False(playback.IsCompleted);
+
+                presenter.Close();
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        if (failure is not null)
+        {
+            throw failure;
+        }
+    }
 }
