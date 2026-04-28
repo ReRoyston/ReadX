@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Added v2 multi-hotkey service registration for configurable capture, replay-last, pause/resume, and cancel actions, while preserving the current capture-only compatibility wrapper.
 - Added classic ORP overlay rendering with a focused red letter, left/right word segments, and `R` restart routing from the RSVP overlay.
 - Hardened RSVP overlay close handling so raw window close and presenter close stop active playback without converting natural completion back to idle.
 - Guarded replay so sessions without a capture region report a status message instead of entering capture-region playback.

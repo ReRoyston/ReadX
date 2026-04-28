@@ -14,6 +14,14 @@ public sealed class HotkeyBindingTests
     }
 
     [Fact]
+    public void ToDisplayText_ForEscape_UsesEscLabel()
+    {
+        var binding = new HotkeyBinding(ModifierKeys.None, Key.Escape);
+
+        Assert.Equal("Esc", binding.ToDisplayText());
+    }
+
+    [Fact]
     public void CreateDefault_ReturnsApprovedV2Bindings()
     {
         var settings = AppSettings.CreateDefault();

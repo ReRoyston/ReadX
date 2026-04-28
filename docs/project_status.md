@@ -1,8 +1,17 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 5 ORP overlay rendering complete
+**Current Phase:** v2 implementation - Task 6 multi-hotkey service complete
 
 ## Done
+- **v2 Task 6: Multi-hotkey service**
+  - Expanded `IHotkeyService` with `HotkeyAction`, `HotkeyRegistration`, and `RegisterAll(...)` for action-specific configurable bindings
+  - Updated `HotkeyService` to register one Win32 id per action from base id `0x5258`, track only successfully registered ids, and unregister all active ids on cleanup
+  - Preserved `TryRegister(...)` as the current capture-only compatibility wrapper for `App.xaml.cs`
+  - Kept busy suppression for capture/replay while allowing pause/resume and cancel callbacks during playback
+  - Added focused coverage for `Esc` hotkey binding display text
+  - Verified focused hotkey binding tests pass: 3 passed, 0 failed
+  - Verified `dotnet build -m:1` passes: 0 errors, 4 NU1900 vulnerability-feed warnings from unavailable `https://api.nuget.org/v3/index.json`
+  - Verified `dotnet test -m:1` passes: 45 passed, 0 failed
 - **v2 Task 5: ORP calculation and overlay rendering**
   - Added `OrpWord` and `OrpCalculator` for classic approximate focus-letter calculation
   - Replaced centered single-word overlay rendering with left, focus-letter, and right text segments anchored around a stable center column
@@ -179,7 +188,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 6 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 7 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues

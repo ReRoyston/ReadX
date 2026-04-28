@@ -41,6 +41,16 @@ public class AppControllerTests
     {
         public List<bool> BusyValues { get; } = [];
 
+        public IReadOnlyList<HotkeyRegistration> RegisterAll(
+            IntPtr hwnd,
+            IReadOnlyDictionary<HotkeyAction, HotkeyBinding> bindings,
+            Action<HotkeyAction> callback)
+        {
+            return bindings
+                .Select(pair => new HotkeyRegistration(pair.Key, pair.Value, true))
+                .ToArray();
+        }
+
         public bool TryRegister(IntPtr hwnd, ModifierKeys mods, Key key, Action callback)
         {
             return true;
