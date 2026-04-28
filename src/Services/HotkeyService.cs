@@ -11,10 +11,28 @@ public sealed class HotkeyService : IHotkeyService
     private const int WmHotkey = 0x0312;
 
     private readonly Dictionary<int, HotkeyAction> actionsById = [];
+    private readonly IHotkeyNativeMethods nativeMethods;
+    private readonly bool addMessageHook;
     private IntPtr hwnd;
     private HwndSource? source;
     private Action<HotkeyAction>? callback;
     private bool isBusy;
+
+    public HotkeyService()
+        : this(new HotkeyNativeMethods(), addMessageHook: true)
+    {
+    }
+
+    internal HotkeyService(IHotkeyNativeMethods nativeMethods)
+        : this(nativeMethods, addMessageHook: false)
+    {
+    }
+
+    private HotkeyService(IHotkeyNativeMethods nativeMethods, bool addMessageHook)
+    {
+        this.nativeMethods = nativeMethods;
+        this.addMessageHook = addMessageHook;
+    }
 
     public IReadOnlyList<HotkeyRegistration> RegisterAll(
         IntPtr hwnd,
@@ -32,8 +50,11 @@ public sealed class HotkeyService : IHotkeyService
 
         this.hwnd = hwnd;
         this.callback = callback;
-        source = HwndSource.FromHwnd(hwnd);
-        source?.AddHook(WndProc);
+        if (addMessageHook)
+        {
+            source = HwndSource.FromHwnd(hwnd);
+            source?.AddHook(WndProc);
+        }
 
         var registrations = new List<HotkeyRegistration>(bindings.Count);
         foreach (var pair in bindings.OrderBy(pair => pair.Key))
@@ -83,7 +104,7 @@ public sealed class HotkeyService : IHotkeyService
 
         foreach (var id in actionsById.Keys.ToArray())
         {
-            UnregisterHotKey(hwnd, id);
+            nativeMethods.UnregisterHotKey(hwnd, id);
         }
 
         actionsById.Clear();
@@ -104,24 +125,34 @@ public sealed class HotkeyService : IHotkeyService
 
     private IntPtr WndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (message == WmHotkey && actionsById.TryGetValue(wParam.ToInt32(), out var action))
+        if (message == WmHotkey)
         {
-            handled = true;
-
-            if (!isBusy || action is HotkeyAction.PauseResume or HotkeyAction.Cancel)
-            {
-                callback?.Invoke(action);
-            }
+            handled = HandleHotkeyMessage(wParam.ToInt32());
         }
 
         return IntPtr.Zero;
     }
 
-    private static bool TryRegisterWin32Hotkey(IntPtr hwnd, int id, HotkeyBinding binding)
+    internal bool HandleHotkeyMessage(int id)
+    {
+        if (!actionsById.TryGetValue(id, out var action))
+        {
+            return false;
+        }
+
+        if (!isBusy || action is HotkeyAction.PauseResume or HotkeyAction.Cancel)
+        {
+            callback?.Invoke(action);
+        }
+
+        return true;
+    }
+
+    private bool TryRegisterWin32Hotkey(IntPtr hwnd, int id, HotkeyBinding binding)
     {
         try
         {
-            return RegisterHotKey(
+            return nativeMethods.RegisterHotKey(
                 hwnd,
                 id,
                 HotkeyMapping.ToModifierFlags(binding.Modifiers),
@@ -132,10 +163,29 @@ public sealed class HotkeyService : IHotkeyService
             return false;
         }
     }
+}
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+internal interface IHotkeyNativeMethods
+{
+    bool RegisterHotKey(IntPtr hwnd, int id, uint modifiers, uint key);
+    bool UnregisterHotKey(IntPtr hwnd, int id);
+}
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+internal sealed class HotkeyNativeMethods : IHotkeyNativeMethods
+{
+    public bool RegisterHotKey(IntPtr hwnd, int id, uint modifiers, uint key)
+    {
+        return RegisterHotKeyNative(hwnd, id, modifiers, key);
+    }
+
+    public bool UnregisterHotKey(IntPtr hwnd, int id)
+    {
+        return UnregisterHotKeyNative(hwnd, id);
+    }
+
+    [DllImport("user32.dll", EntryPoint = "RegisterHotKey", SetLastError = true)]
+    private static extern bool RegisterHotKeyNative(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll", EntryPoint = "UnregisterHotKey", SetLastError = true)]
+    private static extern bool UnregisterHotKeyNative(IntPtr hWnd, int id);
 }
