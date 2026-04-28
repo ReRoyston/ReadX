@@ -12,9 +12,11 @@
   - Enabled replay-last for import/history sessions with no capture region
   - Added controller playback controls for pause/resume, restart, and cancel
   - Updated `IRsvpPresenter` and `RsvpPresenter` so regionless sessions play centered while capture-region placement remains unchanged
+  - Hardened controller failure paths: history add/load failures now stop before playback with `History update failed.`, presenter failures cancel/close playback with `Playback failed.`, and import/history/replay-last setup is guarded against re-entry before playback starts
   - Added in-memory settings/history test fakes and focused controller/presenter coverage
-  - Verified focused controller/presenter tests pass: 10 passed, 0 failed
-  - Verified `dotnet test -m:1` passes: 57 passed, 0 failed, with NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
+  - Verified focused controller tests pass after review hardening: 13 passed, 0 failed
+  - Verified focused controller/presenter tests pass: 16 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 63 passed, 0 failed, with NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
 - **v2 Task 6: Multi-hotkey service**
   - Expanded `IHotkeyService` with `HotkeyAction`, `HotkeyRegistration`, and `RegisterAll(...)` for action-specific configurable bindings
   - Updated `HotkeyService` to register one Win32 id per action from base id `0x5258`, track only successfully registered ids, and unregister all active ids on cleanup

@@ -123,6 +123,137 @@ public class AppControllerTests
     }
 
     [Fact]
+    public async Task ImportTextAsync_WhenHistoryAddFails_ReturnsIdleAndDoesNotPlay()
+    {
+        var history = new InMemoryHistoryStore
+        {
+            AddException = new IOException("store unavailable")
+        };
+        var presenter = new FakeRsvpPresenter();
+        var controller = CreateController(AppSettings.CreateDefault(), history, presenter);
+
+        await controller.ImportTextAsync("one two");
+
+        Assert.Equal(AppState.Idle, controller.State);
+        Assert.Equal("History update failed.", controller.Status);
+        Assert.Null(controller.LastSession);
+        Assert.Empty(controller.History);
+        Assert.Equal(0, presenter.PlayCount);
+    }
+
+    [Fact]
+    public async Task ImportTextAsync_WhenHistoryLoadFails_ReturnsIdleAndDoesNotPlay()
+    {
+        var history = new InMemoryHistoryStore
+        {
+            LoadException = new IOException("history unreadable")
+        };
+        var presenter = new FakeRsvpPresenter();
+        var controller = CreateController(AppSettings.CreateDefault(), history, presenter);
+
+        await controller.ImportTextAsync("one two");
+
+        Assert.Equal(AppState.Idle, controller.State);
+        Assert.Equal("History update failed.", controller.Status);
+        Assert.Null(controller.LastSession);
+        Assert.Empty(controller.History);
+        Assert.Equal(0, presenter.PlayCount);
+    }
+
+    [Fact]
+    public async Task ImportTextAsync_WhenPresenterFails_CancelsPlaybackClosesPresenterAndReturnsIdle()
+    {
+        var presenter = new FakeRsvpPresenter
+        {
+            PlayException = new InvalidOperationException("overlay failed")
+        };
+        var ticker = new FakeTicker();
+        var controller = CreateController(
+            AppSettings.CreateDefault(),
+            new InMemoryHistoryStore(),
+            presenter,
+            player: new RsvpPlayer(ticker));
+
+        await controller.ImportTextAsync("one two");
+
+        Assert.Equal(AppState.Idle, controller.State);
+        Assert.Equal("Playback failed.", controller.Status);
+        Assert.Equal(PlayerState.Idle, presenter.LastPlayer!.State);
+        Assert.False(ticker.IsRunning);
+        Assert.Equal(1, presenter.CloseCount);
+        Assert.NotNull(controller.LastSession);
+    }
+
+    [Fact]
+    public async Task ImportTextAsync_WhenHistoryAddIsDelayed_DoesNotAllowReentry()
+    {
+        var history = new InMemoryHistoryStore { HoldAdd = true };
+        var presenter = new FakeRsvpPresenter();
+        var controller = CreateController(AppSettings.CreateDefault(), history, presenter);
+
+        var firstImport = controller.ImportTextAsync("first text");
+        await history.WaitForAddAsync();
+
+        var secondImport = controller.ImportTextAsync("second text");
+
+        history.ReleaseAdd();
+        await Task.WhenAll(firstImport, secondImport);
+
+        Assert.Equal(1, history.AddCount);
+        Assert.Equal(["first text"], controller.History.Select(item => item.RawText));
+        Assert.Equal("first text", controller.LastSession!.RawText);
+        Assert.Equal(1, presenter.PlayCount);
+    }
+
+    [Fact]
+    public async Task ReplayHistoryAsync_WhenStateChangedReentersBeforePlayback_DoesNotReplayTwice()
+    {
+        var presenter = new FakeRsvpPresenter();
+        var firstItem = new HistoryItem(Guid.NewGuid(), DateTimeOffset.UtcNow, HistorySource.Import, "first text");
+        var secondItem = new HistoryItem(Guid.NewGuid(), DateTimeOffset.UtcNow, HistorySource.Import, "second text");
+        var controller = CreateController(
+            AppSettings.CreateDefault(),
+            new InMemoryHistoryStore(),
+            presenter,
+            loadedHistory: [firstItem, secondItem]);
+        var reentered = false;
+        controller.StateChanged += () =>
+        {
+            if (controller.State == AppState.Idle && !reentered)
+            {
+                reentered = true;
+                _ = controller.ReplayHistoryAsync(secondItem);
+            }
+        };
+
+        await controller.ReplayHistoryAsync(firstItem);
+
+        Assert.Equal(1, presenter.PlayCount);
+        Assert.Equal("first text", controller.LastSession!.RawText);
+    }
+
+    [Fact]
+    public async Task ReplayLastAsync_WhenStateChangedReentersBeforePlayback_DoesNotReplayTwice()
+    {
+        var presenter = new FakeRsvpPresenter();
+        var controller = CreateController(AppSettings.CreateDefault(), new InMemoryHistoryStore(), presenter);
+        await controller.ImportTextAsync("first text");
+        var reentered = false;
+        controller.StateChanged += () =>
+        {
+            if (controller.State == AppState.Idle && !reentered)
+            {
+                reentered = true;
+                _ = controller.ReplayLastAsync();
+            }
+        };
+
+        await controller.ReplayLastAsync();
+
+        Assert.Equal(2, presenter.PlayCount);
+    }
+
+    [Fact]
     public async Task PlaybackControlsPauseRestartAndCancelActivePlayback()
     {
         var presenter = new FakeRsvpPresenter { HoldPlaybackOpen = true };
@@ -248,34 +379,74 @@ public class AppControllerTests
     private sealed class FakeRsvpPresenter : IRsvpPresenter
     {
         private readonly TaskCompletionSource playbackStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private TaskCompletionSource? beforePlayReached;
+        private TaskCompletionSource? beforePlayRelease;
         private TaskCompletionSource? activePlayback;
+        private bool holdBeforePlay;
 
         public bool HoldPlaybackOpen { get; init; }
+        public bool HoldBeforePlay
+        {
+            get => holdBeforePlay;
+            set
+            {
+                holdBeforePlay = value;
+                if (value)
+                {
+                    beforePlayReached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    beforePlayRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                }
+            }
+        }
+        public Exception? PlayException { get; init; }
         public int PlayCount { get; private set; }
         public int CloseCount { get; private set; }
         public RsvpPlayer? LastPlayer { get; private set; }
         public List<CaptureRegion?> Regions { get; } = [];
 
-        public Task PlayAsync(RsvpPlayer player, CaptureRegion? region)
+        public async Task PlayAsync(RsvpPlayer player, CaptureRegion? region)
         {
+            if (HoldBeforePlay)
+            {
+                beforePlayReached!.SetResult();
+                await beforePlayRelease!.Task;
+                HoldBeforePlay = false;
+            }
+
             PlayCount++;
             LastPlayer = player;
             Regions.Add(region);
+
+            if (PlayException is not null)
+            {
+                throw PlayException;
+            }
+
             player.Start();
             playbackStarted.TrySetResult();
 
             if (!HoldPlaybackOpen)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             activePlayback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            return activePlayback.Task;
+            await activePlayback.Task;
         }
 
         public Task WaitForPlaybackAsync()
         {
             return playbackStarted.Task;
+        }
+
+        public Task WaitForBeforePlayAsync()
+        {
+            return beforePlayReached?.Task ?? Task.CompletedTask;
+        }
+
+        public void ReleaseBeforePlay()
+        {
+            beforePlayRelease?.TrySetResult();
         }
 
         public void Close()

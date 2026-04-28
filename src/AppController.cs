@@ -14,6 +14,7 @@ public sealed class AppController
     private readonly IRsvpPresenter presenter;
     private readonly ISettingsStore settingsStore;
     private readonly IHistoryStore history;
+    private bool workflowActive;
 
     public AppController(
         IHotkeyService hotkey,
@@ -81,12 +82,10 @@ public sealed class AppController
 
     public async Task StartCaptureAsync()
     {
-        if (State != AppState.Idle || ocr is null)
+        if (ocr is null || !TryBeginWorkflow())
         {
             return;
         }
-
-        hotkey.SetBusy(true);
 
         try
         {
@@ -121,61 +120,53 @@ public sealed class AppController
             LastSession = session;
             NotifyStateChanged();
 
-            await PlayAsync(session);
-            SetIdle("Ready.");
+            if (await PlayAsync(session))
+            {
+                SetIdle("Ready.");
+            }
         }
         finally
         {
-            hotkey.SetBusy(false);
-            if (State != AppState.Idle)
-            {
-                SetIdle(Status);
-            }
+            EndWorkflow();
         }
     }
 
     public async Task ReplayLastAsync()
     {
-        if (State != AppState.Idle || LastSession is null)
+        if (LastSession is null || !TryBeginWorkflow())
         {
             return;
         }
-
-        var session = LastSession;
-        var replaySession = await CreateSessionAsync(session.RawText, session.Source, session.Region, addToHistory: false);
-        if (replaySession is null)
-        {
-            return;
-        }
-
-        LastSession = replaySession;
-        NotifyStateChanged();
-
-        hotkey.SetBusy(true);
 
         try
         {
-            await PlayAsync(replaySession);
-            SetIdle("Ready.");
+            var session = LastSession;
+            var replaySession = await CreateSessionAsync(session.RawText, session.Source, session.Region, addToHistory: false);
+            if (replaySession is null)
+            {
+                return;
+            }
+
+            LastSession = replaySession;
+            NotifyStateChanged();
+
+            if (await PlayAsync(replaySession))
+            {
+                SetIdle("Ready.");
+            }
         }
         finally
         {
-            hotkey.SetBusy(false);
-            if (State != AppState.Idle)
-            {
-                SetIdle(Status);
-            }
+            EndWorkflow();
         }
     }
 
     public async Task ImportTextAsync(string rawText)
     {
-        if (State != AppState.Idle)
+        if (!TryBeginWorkflow())
         {
             return;
         }
-
-        hotkey.SetBusy(true);
 
         try
         {
@@ -188,16 +179,14 @@ public sealed class AppController
             LastSession = session;
             NotifyStateChanged();
 
-            await PlayAsync(session);
-            SetIdle("Ready.");
+            if (await PlayAsync(session))
+            {
+                SetIdle("Ready.");
+            }
         }
         finally
         {
-            hotkey.SetBusy(false);
-            if (State != AppState.Idle)
-            {
-                SetIdle(Status);
-            }
+            EndWorkflow();
         }
     }
 
@@ -205,12 +194,10 @@ public sealed class AppController
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        if (State != AppState.Idle)
+        if (!TryBeginWorkflow())
         {
             return;
         }
-
-        hotkey.SetBusy(true);
 
         try
         {
@@ -223,16 +210,14 @@ public sealed class AppController
             LastSession = session;
             NotifyStateChanged();
 
-            await PlayAsync(session);
-            SetIdle("Ready.");
+            if (await PlayAsync(session))
+            {
+                SetIdle("Ready.");
+            }
         }
         finally
         {
-            hotkey.SetBusy(false);
-            if (State != AppState.Idle)
-            {
-                SetIdle(Status);
-            }
+            EndWorkflow();
         }
     }
 
@@ -311,9 +296,17 @@ public sealed class AppController
 
         if (addToHistory)
         {
-            await history.AddAsync(rawText, source, Settings.HistoryLimit);
-            History = await history.LoadAsync();
-            NotifyStateChanged();
+            try
+            {
+                await history.AddAsync(rawText, source, Settings.HistoryLimit);
+                History = await history.LoadAsync();
+                NotifyStateChanged();
+            }
+            catch
+            {
+                SetIdle("History update failed.");
+                return null;
+            }
         }
 
         var pipeline = TextPipeline.BuildWords(rawText, Settings.CleanupEnabled);
@@ -326,11 +319,22 @@ public sealed class AppController
         return new RsvpSession(pipeline.Words, region, pipeline.RawText, pipeline.ProcessedText, source);
     }
 
-    private async Task PlayAsync(RsvpSession session)
+    private async Task<bool> PlayAsync(RsvpSession session)
     {
         SetState(AppState.Playing, "Playing.");
         player.Load(session.Words, Wpm);
-        await presenter.PlayAsync(player, session.Region);
+        try
+        {
+            await presenter.PlayAsync(player, session.Region);
+            return true;
+        }
+        catch
+        {
+            player.Cancel();
+            presenter.Close();
+            SetIdle("Playback failed.");
+            return false;
+        }
     }
 
     private void SetState(AppState state, string? status)
@@ -348,6 +352,29 @@ public sealed class AppController
     private void NotifyStateChanged()
     {
         StateChanged?.Invoke();
+    }
+
+    private bool TryBeginWorkflow()
+    {
+        if (workflowActive || State != AppState.Idle)
+        {
+            return false;
+        }
+
+        workflowActive = true;
+        hotkey.SetBusy(true);
+        return true;
+    }
+
+    private void EndWorkflow()
+    {
+        if (State != AppState.Idle)
+        {
+            SetIdle(Status);
+        }
+
+        hotkey.SetBusy(false);
+        workflowActive = false;
     }
 
     private sealed class DefaultSettingsStore : ISettingsStore

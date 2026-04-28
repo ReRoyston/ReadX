@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Hardened Task 7 controller workflows so history persistence failures stop playback with a useful idle status, presenter failures cancel/close playback, and import/history/replay-last setup cannot be re-entered before playback starts.
 - Wired v2 controller workflows for capture, import, history replay, regionless replay-last, playback controls, exposed settings/history state, and raw-history updates through the shared text pipeline.
 - Updated `IRsvpPresenter`/`RsvpPresenter` to accept nullable capture regions and center the overlay for import/history playback.
 - Added unit coverage for configurable hotkey registration, cleanup, compatibility, partial failure, and busy dispatch through an internal native-method seam.
