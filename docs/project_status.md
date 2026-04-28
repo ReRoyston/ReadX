@@ -5,12 +5,12 @@
 ## Done
 - **v2 Task 3: Text cleanup and shared pipeline**
   - Added `TextCleanupService` for optional cleanup before tokenization
-  - Cleanup rejoins hyphenated fragments only across single line breaks, collapses horizontal whitespace, converts single line wraps to spaces, and preserves paragraph breaks as single readable `\n` separators
+  - Cleanup normalizes input to Unicode Form C, rejoins hyphenated fragments only across single line breaks, collapses horizontal whitespace, converts single line wraps to spaces, preserves existing control characters, and preserves paragraph breaks as single readable `\n` separators
   - Added `TextPipeline.BuildWords` to return raw text, processed text, and tokenized words from one shared path
   - Moved hyphenated line-wrap responsibility out of `WordSplitter`; `WordSplitter` now only splits non-empty whitespace-delimited tokens
-  - Added focused coverage for cleanup behavior, pipeline cleanup toggle behavior, and skipped-cleanup tokenization
-  - Verified focused text/tokenizer tests pass: 9 passed, 0 failed
-  - Verified `dotnet test -m:1` passes: 32 passed, 0 failed
+  - Added focused coverage for cleanup behavior, control-character preservation, Unicode normalization before hyphen rejoin, pipeline cleanup toggle behavior, and skipped-cleanup tokenization
+  - Verified focused text/tokenizer tests pass: 11 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 34 passed, 0 failed
 - **v2 Task 2: Raw-text history store**
   - Added `HistoryItem` and `HistorySource` models for raw capture/import history records
   - Added `IHistoryStore` and `JsonHistoryStore` for JSON-backed history under app data

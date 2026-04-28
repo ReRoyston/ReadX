@@ -27,4 +27,20 @@ public sealed class TextCleanupServiceTests
 
         Assert.Equal("First-\nSecond", clean);
     }
+
+    [Fact]
+    public void Clean_PreservesExistingControlCharacters()
+    {
+        var clean = TextCleanupService.Clean("A\u0001B");
+
+        Assert.Equal("A\u0001B", clean);
+    }
+
+    [Fact]
+    public void Clean_RejoinsHyphenatedWrapAfterCombiningMark()
+    {
+        var clean = TextCleanupService.Clean("Cafe\u0301-\nstyle");
+
+        Assert.Equal("Caféstyle", clean);
+    }
 }

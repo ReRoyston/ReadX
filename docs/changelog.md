@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Hardened text cleanup by removing the in-band paragraph sentinel and normalizing input to Unicode Form C before cleanup.
 - Fixed text cleanup so hyphenated fragments are rejoined only across single line breaks, preserving paragraph breaks as one newline.
 - Added v2 text cleanup pipeline with optional hyphenated-line-wrap rejoining, paragraph break preservation, whitespace normalization, and shared cleanup/tokenization result creation.
 - Moved hyphenated line-wrap handling out of `WordSplitter`; tokenization now only splits already-processed text on whitespace.
