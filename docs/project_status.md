@@ -1,8 +1,18 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 4 restartable playback complete
+**Current Phase:** v2 implementation - Task 5 ORP overlay rendering complete
 
 ## Done
+- **v2 Task 5: ORP calculation and overlay rendering**
+  - Added `OrpWord` and `OrpCalculator` for classic approximate focus-letter calculation
+  - Replaced centered single-word overlay rendering with left, focus-letter, and right text segments anchored around a stable center column
+  - Highlighted the focus letter in red while preserving the existing progress bar and footer
+  - Routed `R` from the RSVP overlay to `RsvpPlayer.Restart()`
+  - Kept presenter lifecycle cleanup explicit by detaching player and overlay event handlers on completion, cancel, and close
+  - Added focused ORP calculator coverage
+  - Verified focused ORP tests pass: 6 passed, 0 failed
+  - Verified `dotnet build -m:1` passes: 0 errors, 4 NU1900 vulnerability-feed warnings from unavailable `https://api.nuget.org/v3/index.json`
+  - Verified `dotnet test -m:1` passes: 42 passed, 0 failed
 - **v2 Task 4: Restartable RSVP playback**
   - Added `RsvpPlayer.Restart()` to stop the current ticker, reset the index, return to `Playing`, and restart playback from the first word on the next tick
   - Expanded `RsvpSession` to store words, optional capture region, raw text, processed text, and history source metadata
@@ -166,7 +176,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 5 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 6 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues

@@ -21,33 +21,61 @@ public sealed class RsvpPresenter : IRsvpPresenter
         }
 
         activePlayback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        overlay = new RsvpOverlay();
-        PositionOverlay(overlay, region);
+        var playbackOverlay = new RsvpOverlay();
+        overlay = playbackOverlay;
+        PositionOverlay(playbackOverlay, region);
+
+        var detached = false;
 
         void OnWordChanged(string word)
         {
-            overlay?.ShowWord(word, player.Index + 1, player.Total);
+            playbackOverlay.ShowWord(word, player.Index + 1, player.Total);
+        }
+
+        void OnPauseRequested()
+        {
+            player.Pause();
+        }
+
+        void OnRestartRequested()
+        {
+            player.Restart();
+        }
+
+        void DetachHandlers()
+        {
+            if (detached)
+            {
+                return;
+            }
+
+            detached = true;
+            player.WordChanged -= OnWordChanged;
+            player.Completed -= OnCompleted;
+            playbackOverlay.PauseRequested -= OnPauseRequested;
+            playbackOverlay.RestartRequested -= OnRestartRequested;
+            playbackOverlay.CancelRequested -= OnCancelRequested;
         }
 
         void OnCompleted()
         {
-            player.WordChanged -= OnWordChanged;
-            player.Completed -= OnCompleted;
+            DetachHandlers();
             Close();
         }
 
-        overlay.PauseRequested += player.Pause;
-        overlay.CancelRequested += () =>
+        void OnCancelRequested()
         {
             player.Cancel();
-            player.WordChanged -= OnWordChanged;
-            player.Completed -= OnCompleted;
+            DetachHandlers();
             Close();
-        };
-        overlay.Closed += (_, _) =>
+        }
+
+        playbackOverlay.PauseRequested += OnPauseRequested;
+        playbackOverlay.RestartRequested += OnRestartRequested;
+        playbackOverlay.CancelRequested += OnCancelRequested;
+        playbackOverlay.Closed += (_, _) =>
         {
-            player.WordChanged -= OnWordChanged;
-            player.Completed -= OnCompleted;
+            DetachHandlers();
             activePlayback?.TrySetResult();
             activePlayback = null;
             overlay = null;
@@ -56,8 +84,8 @@ public sealed class RsvpPresenter : IRsvpPresenter
         player.WordChanged += OnWordChanged;
         player.Completed += OnCompleted;
 
-        overlay.Show();
-        overlay.Activate();
+        playbackOverlay.Show();
+        playbackOverlay.Activate();
         player.Start();
 
         return activePlayback.Task;

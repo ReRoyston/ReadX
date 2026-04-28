@@ -18,7 +18,7 @@ Single WPF project; modular layout, separated by concern.
 
 - `Views/MainWindow` — single-pane v1 shell: Capture button, hotkey label, WPM slider, last-OCR preview, Replay button.
 - `Views/RegionSelectOverlay` — borderless transparent topmost window across the virtual screen; drag-rectangle with size/origin readout; `Esc` cancels.
-- `Views/RsvpOverlay` — borderless topmost window pinned above the captured region; renders one word at a time with progress bar and footer.
+- `Views/RsvpOverlay` — borderless topmost window pinned above the captured region; renders one word at a time as left/focus/right ORP segments with progress bar and footer.
 - `Services/HotkeyService` — Win32 `RegisterHotKey` via P/Invoke, registered against the main window HWND after `SourceInitialized`.
 - `Services/ScreenCaptureService` — DPI-aware capture of the chosen rect to `Bitmap`.
 - `Services/OcrService` — wrapper around the `Tesseract` NuGet package; image → text.
@@ -31,11 +31,8 @@ Single WPF project; modular layout, separated by concern.
 - `Services/JsonHistoryStore` - JSON raw-text history persistence under user app data; serializes access and saves through unique same-directory temp files before moving into place with overwrite.
 - `Text/TextCleanupService` - optional cleanup before tokenization; normalizes Unicode to Form C, rejoins hyphenated fragments across single line breaks only, normalizes whitespace, and preserves paragraph breaks.
 - `Text/TextPipeline` - shared raw text -> processed text -> word list path for capture, import, and history replay.
-- `Tokenization/WordSplitter` — pure logic, processed text → ordered whitespace-delimited word tokens.
-
-Planned v2 additions:
-
 - `Rsvp/OrpCalculator`, `Rsvp/OrpWord` - pure ORP focus-letter calculation for overlay rendering.
+- `Tokenization/WordSplitter` — pure logic, processed text → ordered whitespace-delimited word tokens.
 
 Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testable without WPF. OS-touching services sit behind small interfaces so they can be stubbed.
 
@@ -47,7 +44,7 @@ Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testabl
 - **v2 foundation-first build order.** Settings/history persistence and text pipeline come before UI replacement so capture, import, and history replay share the same contracts. (2026-04-28)
 - **v2 left-side navigation.** Main window moves from v1 single-pane to compact left tabs for Capture, Import, History, and Settings. This avoids a tall portrait layout while keeping the utility feel. (2026-04-28)
 - **v2 history stores raw text only.** History is an activity log, not a library. Replays reprocess raw text through the current cleanup, tokenization, and RSVP renderer so future engine improvements apply to old entries. (2026-04-28)
-- **v2 classic ORP rendering.** RSVP output will highlight the focus letter and align words around a stable ORP anchor; customization is deferred. (2026-04-28)
+- **v2 classic ORP rendering.** `OrpCalculator` uses a fixed approximate focus index by word length and `RsvpOverlay` renders left/focus/right text blocks around a stable center column, with the focus letter highlighted red. Overlay restart is routed through `RsvpPresenter` to `RsvpPlayer.Restart()`, and customization is deferred. (2026-04-28)
 - **Single-pane main window for v1.** Sidebar / navigation-view deferred until History and Settings exist — avoids a UI that pretends to have features it doesn't. (2026-04-26)
 - **No Optimal Recognition Point in v1.** RSVP overlay shows centred words only; ORP / focus-letter pivot deferred to a later release. (2026-04-26)
 - **Defaults:** hotkey `Ctrl+Shift+R`, default WPM `300`, playback controls `Space` (pause) / `Esc` (cancel), OCR language English only. (2026-04-26)
