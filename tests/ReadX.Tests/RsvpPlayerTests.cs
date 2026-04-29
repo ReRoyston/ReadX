@@ -44,6 +44,26 @@ public class RsvpPlayerTests
     }
 
     [Fact]
+    public void Restart_ReturnsToFirstWordAndStartsPlayback()
+    {
+        var ticker = new FakeTicker();
+        var player = new RsvpPlayer(ticker);
+        var seenWords = new List<string>();
+        player.WordChanged += seenWords.Add;
+
+        player.Load(["one", "two"], 300);
+        player.Start();
+        ticker.Pulse();
+        ticker.Pulse();
+        player.Restart();
+        ticker.Pulse();
+
+        Assert.Equal(PlayerState.Playing, player.State);
+        Assert.Equal(0, player.Index);
+        Assert.Equal(["one", "two", "one"], seenWords);
+    }
+
+    [Fact]
     public void EndOfWords_FiresCompletedAndFinishes()
     {
         var ticker = new FakeTicker();

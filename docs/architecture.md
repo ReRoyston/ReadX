@@ -11,23 +11,46 @@
 ## Product
 ShareX-style RSVP utility. Global hotkey → drag region → screen capture → OCR → RSVP overlay plays the words above the captured region at a configurable WPM. v1 ships only this core loop plus a minimal main window.
 
+v2 is planned as a daily-use release. It keeps the core loop, then adds persisted settings, raw-text history, quick manual import, configurable hotkeys, text cleanup, restartable playback controls, classic ORP focused-letter rendering, and a compact left-tab main window.
+
 ## Components
 Single WPF project; modular layout, separated by concern.
 
-- `Views/MainWindow` — single-pane v1 shell: Capture button, hotkey label, WPM slider, last-OCR preview, Replay button.
+- `Views/MainWindow` - compact v2 left-tab shell for Capture, Import, History, and Settings. It exposes UI intent through events and accepts controller/app state through setter methods so Task 9 composition can remain outside the view.
 - `Views/RegionSelectOverlay` — borderless transparent topmost window across the virtual screen; drag-rectangle with size/origin readout; `Esc` cancels.
-- `Views/RsvpOverlay` — borderless topmost window pinned above the captured region; renders one word at a time with progress bar and footer.
-- `Services/HotkeyService` — Win32 `RegisterHotKey` via P/Invoke, registered against the main window HWND after `SourceInitialized`.
+- `Views/RsvpOverlay` — borderless topmost window pinned above the captured region; renders one word at a time as left/focus/right ORP segments with progress bar and footer.
+- `Services/HotkeyService` — Win32 `RegisterHotKey` via P/Invoke, registered against the main window HWND after `SourceInitialized`; supports configurable action bindings for capture, replay last, pause/resume, and cancel.
 - `Services/ScreenCaptureService` — DPI-aware capture of the chosen rect to `Bitmap`.
 - `Services/OcrService` — wrapper around the `Tesseract` NuGet package; image → text.
-- `Services/RsvpPlayer` — WPM-driven word stream; pause/resume; `DispatcherTimer` for UI tick.
+- `Services/RsvpPlayer` — WPM-driven word stream; pause/resume/restart; `DispatcherTimer` for UI tick.
 - `Services/RsvpPresenter` — owns RSVP overlay window lifecycle, positioning, keyboard routing, and binding player events to the view.
 - `Models/CaptureRegion`, `Models/RsvpSession` — plain data.
-- `Tokenization/WordSplitter` — pure logic, text → ordered word tokens.
+- `Models/AppSettings`, `Models/HotkeyBinding` - persisted user preferences and shortcut bindings.
+- `Models/HistoryItem`, `Models/HistorySource` - raw capture/import history records.
+- `Services/JsonSettingsStore` - JSON settings persistence under user app data; saves through a same-directory temp file before replacing/moving into place.
+- `Services/JsonHistoryStore` - JSON raw-text history persistence under user app data; serializes access and saves through unique same-directory temp files before moving into place with overwrite.
+- `Text/TextCleanupService` - optional cleanup before tokenization; normalizes Unicode to Form C, rejoins hyphenated fragments across single line breaks only, normalizes whitespace, and preserves paragraph breaks.
+- `Text/TextPipeline` - shared raw text -> processed text -> word list path for capture, import, and history replay.
+- `Rsvp/OrpCalculator`, `Rsvp/OrpWord` - pure ORP focus-letter calculation for overlay rendering.
+- `Tokenization/WordSplitter` — pure logic, processed text → ordered whitespace-delimited word tokens.
 
 Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testable without WPF. OS-touching services sit behind small interfaces so they can be stubbed.
 
 ## Key Design Decisions
+- **v2 composition loads persisted app state before UI display.** `App.xaml.cs` now owns the Task 9 composition root: it creates app-data-backed settings/history stores, loads persisted settings and raw-text history asynchronously, applies them to `MainWindow` before showing it, composes `AppController` with those stores and loaded values, and saves final settings during exit cleanup. It also registers all configured hotkeys after `SourceInitialized` and re-registers them after settings changes, reporting each action independently so one unavailable binding does not disable unrelated UI workflows. (2026-04-29)
+- **v2 controller exposes composition-facing state contracts.** `AppController` now exposes current hotkey bindings, registration results, action-based hotkey dispatch, and `UpdateSettingsAsync`. Settings updates are serialized, normalize and save preferences, trim/reload history by the configured limit, update WPM, and report save/history-limit failures without forcing the controller to idle while capture or playback is active. (2026-04-29)
+- **v2 main window is event/state based.** `MainWindow` owns only the compact left-tab WPF layout and local control state. It raises capture, replay, import, history replay, playback-control, WPM, and settings-change events, and receives settings, history, hotkey registration status, busy/OCR/replay availability, last text, and status through explicit setters. History rows are built in code for v2 so each replay button can carry a stable `HistoryItem` tag without adding a new view model layer before Task 9 composition. (2026-04-29)
+- **v2 controller owns text workflow integration.** `AppController` now exposes loaded `Settings` and `History`, accepts settings/history stores through the v2 constructor, and routes capture, import, history replay, and replay-last through `TextPipeline`. Capture/import add raw text to history before playback and reload exposed history; history replay does not create another history item. A private workflow guard prevents import/history/replay-last re-entry during async setup and state notifications. History persistence failures stop before playback with an idle status, and presenter failures cancel/close playback before returning idle. `IRsvpPresenter.PlayAsync` accepts `CaptureRegion?`, keeping capture placement unchanged while centering the overlay for import/history sessions without a region. (2026-04-29)
+- **v2 hotkeys are action-addressed.** `IHotkeyService.RegisterAll` accepts a map of `HotkeyAction` to `HotkeyBinding`, assigns each action a stable Win32 id from base `0x5258`, returns per-action registration results, and only dispatches callbacks for ids that registered successfully. `SetBusy(true)` suppresses capture and replay-last triggers during active work while still allowing pause/resume and cancel. The older `TryRegister` API remains as a capture-only compatibility wrapper until the v2 composition work is connected. Native registration is behind an internal seam so service behavior can be unit-tested without registering real global hotkeys. (2026-04-28)
+- **Modifierless shortcuts stay local.** The default `Space` and `Esc` playback controls are handled by the RSVP overlay and are not registered as system-wide hotkeys. Users can enter modified bindings such as `Ctrl+Space` or `Ctrl+Esc` in Settings if they want global pause/cancel behavior. (2026-04-29)
+- **v2 history persistence is serialized and temp-file based.** `JsonHistoryStore` serializes public operations with a store-level semaphore, writes retained history to unique `history.json.*.tmp` files in the same directory, then moves into `history.json` with overwrite. Missing or invalid JSON history loads as empty; IO/read failures propagate so writes do not overwrite a real history file after a transient read failure. Whitespace-only entries are not stored, duplicates are kept, and retention trims the oldest items. (2026-04-28)
+- **v2 text cleanup is a shared optional pipeline step.** `TextCleanupService` first normalizes input to Unicode Form C, then rejoins hyphenated fragments only across single line breaks, preserves paragraph breaks as one newline, and handles whitespace cleanup before `WordSplitter` runs. It does not use in-band sentinel characters, so U+0001 is not treated as an internal paragraph marker. `TextPipeline` returns raw text, processed text, and words so capture, import, and history replay can share one processing path while respecting the cleanup toggle. (2026-04-28)
+- **v2 playback sessions are restartable and metadata-aware.** `RsvpPlayer.Restart()` resets playback to before the first word and starts the ticker so the next tick emits the first word again. `RsvpSession` now carries raw text, processed text, optional capture region, and source metadata so capture, import, and history flows can share one session contract. (2026-04-28)
+- **v2 settings persistence is serialized and temp-file based.** `JsonSettingsStore.SaveAsync` serializes writes with a store-level semaphore, writes to unique same-directory `settings.json.*.tmp` files, then moves into `settings.json` with overwrite. This avoids truncating the existing settings file before serialization succeeds and prevents auto-save/final-save temp-file races. (2026-04-28)
+- **v2 foundation-first build order.** Settings/history persistence and text pipeline come before UI replacement so capture, import, and history replay share the same contracts. (2026-04-28)
+- **v2 left-side navigation.** Main window moves from v1 single-pane to compact left tabs for Capture, Import, History, and Settings. This avoids a tall portrait layout while keeping the utility feel. (2026-04-28)
+- **v2 history stores raw text only.** History is an activity log, not a library. Replays reprocess raw text through the current cleanup, tokenization, and RSVP renderer so future engine improvements apply to old entries. (2026-04-28)
+- **v2 classic ORP rendering.** `OrpCalculator` uses a fixed approximate focus index by word length and `RsvpOverlay` renders left/focus/right text blocks around a stable center column, with the focus letter highlighted red. Overlay restart is routed through `RsvpPresenter` to `RsvpPlayer.Restart()`, and customization is deferred. (2026-04-28)
 - **Single-pane main window for v1.** Sidebar / navigation-view deferred until History and Settings exist — avoids a UI that pretends to have features it doesn't. (2026-04-26)
 - **No Optimal Recognition Point in v1.** RSVP overlay shows centred words only; ORP / focus-letter pivot deferred to a later release. (2026-04-26)
 - **Defaults:** hotkey `Ctrl+Shift+R`, default WPM `300`, playback controls `Space` (pause) / `Esc` (cancel), OCR language English only. (2026-04-26)
@@ -40,4 +63,4 @@ Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testabl
 - **Hotkey registration timing.** v1 registers `Ctrl+Shift+R` only after `MainWindow.SourceInitialized`, using the main window HWND rather than a hidden message window. (2026-04-27)
 - **OCR unavailable mode.** If `OcrService` cannot be constructed, `AppController` receives `IOcrService?` as `null`, reports `OcrAvailable = false`, and disables Capture while keeping the app open. (2026-04-27)
 - **RsvpPlayer testability via `ITicker` seam.** Production wraps `DispatcherTimer`; tests use a `FakeTicker`. Lets the state machine be unit-tested without WPF or sleeping. (2026-04-27)
-- **WordSplitter: always rejoin hyphenated line-wrap fragments (Option A).** Trade-off — real hyphenated terms (`state-of-the-art`) get rejoined too. v2 review item: replace with a smarter heuristic. (2026-04-27)
+- **WordSplitter stays deliberately narrow for v2.** Cleanup-specific transformations live in `TextCleanupService`; `WordSplitter` only splits processed text into whitespace-delimited tokens. (2026-04-28)

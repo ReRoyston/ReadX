@@ -1,4 +1,6 @@
 .claude/
+.superpowers/
+.worktrees/
 
 # .NET build artefacts
 bin/

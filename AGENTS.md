@@ -24,7 +24,6 @@ When in doubt, stop and ask.
 
 ## How to Build
 - Do what has been asked - nothing more, nothing less
-- One step at a time - summarise what was done and what's next, then wait for "continue"
 - No silent decisions - flag every choice made during implementation
 - Ask before assuming - a question upfront beats a rework later
 - Plans must be logically consistent - flag contradictions before implementing, not during

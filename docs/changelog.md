@@ -1,6 +1,35 @@
 # Changelog
 
 ## [Unreleased]
+- Added Settings-tab hotkey editors, rejected modifierless global hotkey registration for bare Space/Esc defaults, and serialized settings saves with unique temp files to avoid exit/auto-save races.
+- v2 implemented and manually verified: persisted settings/history load on restart, quick import starts RSVP playback, history replay does not create duplicate history, configurable hotkey registration reports per-action status, cleanup/history settings persist, and the compact left-tab UI is wired end to end.
+- Hardened Task 9 settings updates so they preserve active playback/capture state, serialize saves, and release hotkey/OCR/presenter resources before the best-effort exit settings save.
+- Wired v2 startup composition to load persisted settings/history, apply them before showing the main window, save settings on changes/exit, register configurable hotkeys per action, and update controller-driven history/hotkey UI state.
+- Fixed minimized main-window settings readback to preserve restore bounds without marking the window maximized.
+- Replaced the main window with the v2 compact left-tab layout for Capture, Import, History, and Settings, including import playback, history replay buttons, settings controls, hotkey summaries, and compatibility state setters for Task 9 composition.
+- Hardened Task 7 controller workflows so history persistence failures stop playback with a useful idle status, presenter failures cancel/close playback, and import/history/replay-last setup cannot be re-entered before playback starts.
+- Wired v2 controller workflows for capture, import, history replay, regionless replay-last, playback controls, exposed settings/history state, and raw-history updates through the shared text pipeline.
+- Updated `IRsvpPresenter`/`RsvpPresenter` to accept nullable capture regions and center the overlay for import/history playback.
+- Added unit coverage for configurable hotkey registration, cleanup, compatibility, partial failure, and busy dispatch through an internal native-method seam.
+- Added v2 multi-hotkey service registration for configurable capture, replay-last, pause/resume, and cancel actions, while preserving the current capture-only compatibility wrapper.
+- Added classic ORP overlay rendering with a focused red letter, left/right word segments, and `R` restart routing from the RSVP overlay.
+- Hardened RSVP overlay close handling so raw window close and presenter close stop active playback without converting natural completion back to idle.
+- Guarded replay so sessions without a capture region report a status message instead of entering capture-region playback.
+- Added restartable RSVP playback and expanded `RsvpSession` to carry raw text, processed text, optional capture region, and history source metadata.
+- Hardened text cleanup by removing the in-band paragraph sentinel and normalizing input to Unicode Form C before cleanup.
+- Fixed text cleanup so hyphenated fragments are rejoined only across single line breaks, preserving paragraph breaks as one newline.
+- Added v2 text cleanup pipeline with optional hyphenated-line-wrap rejoining, paragraph break preservation, whitespace normalization, and shared cleanup/tokenization result creation.
+- Moved hyphenated line-wrap handling out of `WordSplitter`; tokenization now only splits already-processed text on whitespace.
+- Added v2 raw-text history persistence with `HistoryItem`, `HistorySource`, `IHistoryStore`, and `JsonHistoryStore`.
+- Hardened history persistence: store operations are serialized, writes use unique same-directory `history.json.*.tmp` files, invalid JSON still loads as empty, and IO/read failures now propagate instead of being treated as empty history.
+- History saves preserve duplicate entries, trim oldest entries by limit, ignore whitespace-only text, and clean temp files after successful saves.
+- Added focused history-store coverage; verified `dotnet test -m:1` passes with 27 tests.
+- Hardened v2 settings persistence: settings saves now write through `settings.json.tmp` and atomically replace/move into place, and non-finite window settings normalize to safe defaults.
+- Added focused settings-store coverage for temp-file cleanup and non-finite window value normalization; verified full test suite passes with 20 tests.
+- Updated architecture, project status, and journal docs with the approved v2 planning decisions and workflow lessons.
+- Added the ReadX v2 implementation plan under `docs/superpowers/plans/`, sequenced foundation-first across persistence, text processing, playback, ORP rendering, hotkeys, UI wiring, verification, and docs.
+- Added the approved ReadX v2 design spec covering daily-use features, left-side tab navigation, JSON settings, raw-text history, quick import, configurable hotkeys, text cleanup, replay controls, and classic ORP rendering.
+- Installed Superpowers as external Codex workflow tooling via `C:\Users\Royston\.codex\superpowers` and the `C:\Users\Royston\.agents\skills\superpowers` junction; no ReadX app source or stack changes.
 - Tech stack chosen: C# / .NET 8, WPF, WPF UI theme library, Tesseract OCR via the `Tesseract` NuGet package, xUnit tests
 - v1 scope locked: core loop (hotkey → region select → OCR → RSVP overlay) + minimal main window; no history, no settings persistence, no rebindable hotkeys
 - UI design locked: single-pane main window (Option B), no Optimal Recognition Point in v1

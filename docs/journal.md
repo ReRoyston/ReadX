@@ -4,7 +4,18 @@ A running log of my learnings from building with AI.
 
 ---
 
+## 2026-04-28
+
+### V2 planning should follow daily workflows before visual polish
+The first v2 fork in the road was whether to design UI first or build features first. The better answer was a foundation-first daily-use release: settings, history, import, hotkeys, cleanup, replay, and ORP output define the real workflows, then the UI structure follows those workflows. This avoids both a pretty shell with unstable requirements and feature work that gets bolted onto the v1 window.
+
+### Browser companions are optional; decisions still need text fallbacks
+The visual brainstorming companion produced server metadata but was not reachable from the user's browser in this environment. The planning did not block on it: ASCII wireframes were enough to identify that top tabs felt too portrait-like and left-side tabs fit the desktop utility better. Future visual tools should be treated as accelerators, not dependencies.
+
 ## 2026-04-27
+
+### Agent workflow tooling belongs outside the product repo unless it changes the product
+Superpowers was installed as Codex-level workflow tooling rather than vendored into ReadX. The app should not gain repository files, runtime dependencies, or architecture changes just because the development workflow improved. Record the setup in project docs, but keep product code focused on product behavior.
 
 ### Absolute rules only work if the worker actually enforces them
 The user asked Codex to "implement everything" and later explicitly said to ignore the `continue` checkpoint rule. Because `AGENTS.md` marked those rules as absolute, Codex stopped and enforced the process anyway. That felt slower, but it kept the build reviewable and prevented a huge invisible change set.
