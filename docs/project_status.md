@@ -1,8 +1,17 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 8 left-tab main window UI complete
+**Current Phase:** v2 implementation - Task 9 composition wiring complete
 
 ## Done
+- **v2 Task 9: Composition, settings save, hotkey registration**
+  - Updated `App.xaml.cs` to load `JsonSettingsStore` and `JsonHistoryStore` through `AppDataPathProvider` during async startup before composing the main window
+  - Applies loaded settings/history before showing `MainWindow`, then composes `AppController` with persisted stores, current settings, and loaded history
+  - Wires capture, import, replay-last, history replay, pause/resume, restart, cancel, WPM changes, and settings changes from `MainWindow`
+  - Added controller APIs for current hotkey bindings, action dispatch, registration status state, and settings updates with save/history-limit failure statuses
+  - Registers all configured hotkeys after `SourceInitialized`, re-registers after settings changes, and reports per-action availability without disabling unrelated workflows
+  - Applies controller state back to the main window, including busy/OCR/replay status, last text, history, status text, and hotkey registration summaries
+  - Saves final settings on exit before releasing hotkey, OCR, and presenter resources
+  - Added focused controller coverage for Task 9 hotkey/settings APIs
 - **v2 Task 8 quality review:** Minimized main-window settings readback now preserves restore bounds while keeping `WindowMaximized` true only for maximized windows.
 - **v2 Task 8: Left-tab main window UI**
   - Replaced the v1 single-pane main window with compact left tabs for Capture, Import, History, and Settings
@@ -212,7 +221,7 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 9 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
+1. Continue with Task 10 manual golden path and final documentation from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
 2. Keep implementation scoped one task at a time with verification and documentation updates.
 
 ## Known Issues

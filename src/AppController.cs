@@ -68,6 +68,7 @@ public sealed class AppController
     public RsvpSession? LastSession { get; private set; }
     public AppSettings Settings { get; private set; } = AppSettings.CreateDefault();
     public IReadOnlyList<HistoryItem> History { get; private set; } = [];
+    public IReadOnlyList<HotkeyRegistration> HotkeyRegistrations { get; private set; } = [];
     public bool HotkeyAvailable { get; private set; }
     public bool OcrAvailable => ocr is not null;
     public int Wpm { get; set; } = 300;
@@ -78,6 +79,69 @@ public sealed class AppController
     {
         HotkeyAvailable = available;
         NotifyStateChanged();
+    }
+
+    public IReadOnlyDictionary<HotkeyAction, HotkeyBinding> GetHotkeyBindings()
+    {
+        return new Dictionary<HotkeyAction, HotkeyBinding>
+        {
+            [HotkeyAction.Capture] = Settings.CaptureHotkey,
+            [HotkeyAction.ReplayLast] = Settings.ReplayLastHotkey,
+            [HotkeyAction.PauseResume] = Settings.PauseResumeHotkey,
+            [HotkeyAction.Cancel] = Settings.CancelHotkey
+        };
+    }
+
+    public Task HandleHotkeyAsync(HotkeyAction action)
+    {
+        return action switch
+        {
+            HotkeyAction.Capture => StartCaptureAsync(),
+            HotkeyAction.ReplayLast => ReplayLastAsync(),
+            HotkeyAction.PauseResume => HandlePlaybackControlAsync(PauseOrResumePlayback),
+            HotkeyAction.Cancel => HandlePlaybackControlAsync(CancelPlayback),
+            _ => Task.CompletedTask
+        };
+    }
+
+    public void SetHotkeyRegistrations(IReadOnlyList<HotkeyRegistration> registrations)
+    {
+        ArgumentNullException.ThrowIfNull(registrations);
+
+        HotkeyRegistrations = registrations.ToArray();
+        HotkeyAvailable = HotkeyRegistrations.Any(registration =>
+            registration.Action == HotkeyAction.Capture && registration.IsRegistered);
+        NotifyStateChanged();
+    }
+
+    public async Task UpdateSettingsAsync(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var normalized = settings.Normalized();
+        try
+        {
+            await settingsStore.SaveAsync(normalized);
+        }
+        catch
+        {
+            SetIdle("Settings save failed.");
+            return;
+        }
+
+        Settings = normalized;
+        Wpm = normalized.DefaultWpm;
+
+        try
+        {
+            await history.ApplyLimitAsync(normalized.HistoryLimit);
+            History = await history.LoadAsync();
+            SetIdle("Ready.");
+        }
+        catch
+        {
+            SetIdle("History limit update failed.");
+        }
     }
 
     public async Task StartCaptureAsync()
@@ -247,6 +311,12 @@ public sealed class AppController
         player.Cancel();
         presenter.Close();
         SetIdle("Ready.");
+    }
+
+    private static Task HandlePlaybackControlAsync(Action action)
+    {
+        action();
+        return Task.CompletedTask;
     }
 
     private System.Drawing.Bitmap? Capture(CaptureRegion region)

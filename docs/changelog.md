@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Wired v2 startup composition to load persisted settings/history, apply them before showing the main window, save settings on changes/exit, register configurable hotkeys per action, and update controller-driven history/hotkey UI state.
 - Fixed minimized main-window settings readback to preserve restore bounds without marking the window maximized.
 - Replaced the main window with the v2 compact left-tab layout for Capture, Import, History, and Settings, including import playback, history replay buttons, settings controls, hotkey summaries, and compatibility state setters for Task 9 composition.
 - Hardened Task 7 controller workflows so history persistence failures stop playback with a useful idle status, presenter failures cancel/close playback, and import/history/replay-last setup cannot be re-entered before playback starts.

@@ -292,6 +292,157 @@ public class AppControllerTests
         await playback;
     }
 
+    [Fact]
+    public void GetHotkeyBindings_ReturnsBindingsFromCurrentSettings()
+    {
+        var settings = AppSettings.CreateDefault() with
+        {
+            CaptureHotkey = new HotkeyBinding(ModifierKeys.Control, Key.D1),
+            ReplayLastHotkey = new HotkeyBinding(ModifierKeys.Alt, Key.D2),
+            PauseResumeHotkey = new HotkeyBinding(ModifierKeys.Shift, Key.D3),
+            CancelHotkey = new HotkeyBinding(ModifierKeys.Control | ModifierKeys.Shift, Key.D4)
+        };
+        var controller = CreateController(settings, new InMemoryHistoryStore(), new FakeRsvpPresenter());
+
+        var bindings = controller.GetHotkeyBindings();
+
+        Assert.Equal(settings.CaptureHotkey, bindings[HotkeyAction.Capture]);
+        Assert.Equal(settings.ReplayLastHotkey, bindings[HotkeyAction.ReplayLast]);
+        Assert.Equal(settings.PauseResumeHotkey, bindings[HotkeyAction.PauseResume]);
+        Assert.Equal(settings.CancelHotkey, bindings[HotkeyAction.Cancel]);
+    }
+
+    [Fact]
+    public void SetHotkeyRegistrations_StoresRegistrationsAndTracksCaptureAvailability()
+    {
+        var settings = AppSettings.CreateDefault();
+        var controller = CreateController(settings, new InMemoryHistoryStore(), new FakeRsvpPresenter());
+        var notifications = 0;
+        controller.StateChanged += () => notifications++;
+        var registrations = new[]
+        {
+            new HotkeyRegistration(HotkeyAction.Capture, settings.CaptureHotkey, true),
+            new HotkeyRegistration(HotkeyAction.ReplayLast, settings.ReplayLastHotkey, false)
+        };
+
+        controller.SetHotkeyRegistrations(registrations);
+
+        Assert.True(controller.HotkeyAvailable);
+        Assert.Equal(registrations, controller.HotkeyRegistrations);
+        Assert.Equal(1, notifications);
+    }
+
+    [Fact]
+    public async Task HandleHotkeyAsync_ReplaysLastSession()
+    {
+        var presenter = new FakeRsvpPresenter();
+        var controller = CreateController(AppSettings.CreateDefault(), new InMemoryHistoryStore(), presenter);
+        await controller.ImportTextAsync("one two");
+
+        await controller.HandleHotkeyAsync(HotkeyAction.ReplayLast);
+
+        Assert.Equal(2, presenter.PlayCount);
+        Assert.Equal("one two", controller.LastSession!.RawText);
+    }
+
+    [Fact]
+    public async Task HandleHotkeyAsync_AllowsPauseResumeAndCancelWhilePlaybackIsActive()
+    {
+        var presenter = new FakeRsvpPresenter { HoldPlaybackOpen = true };
+        var ticker = new FakeTicker();
+        var controller = CreateController(
+            AppSettings.CreateDefault(),
+            new InMemoryHistoryStore(),
+            presenter,
+            player: new RsvpPlayer(ticker));
+
+        var playback = controller.ImportTextAsync("one two");
+        await presenter.WaitForPlaybackAsync();
+
+        await controller.HandleHotkeyAsync(HotkeyAction.PauseResume);
+        Assert.Equal(PlayerState.Paused, presenter.LastPlayer!.State);
+
+        await controller.HandleHotkeyAsync(HotkeyAction.Cancel);
+
+        Assert.Equal(PlayerState.Idle, presenter.LastPlayer.State);
+        Assert.Equal(AppState.Idle, controller.State);
+        await playback;
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_NormalizesSavesAppliesHistoryLimitAndReloadsHistory()
+    {
+        var initialSettings = AppSettings.CreateDefault() with { DefaultWpm = 300, HistoryLimit = 5 };
+        var history = new InMemoryHistoryStore();
+        await history.AddAsync("one", HistorySource.Import, 5);
+        await history.AddAsync("two", HistorySource.Import, 5);
+        var settingsStore = new InMemorySettingsStore(initialSettings);
+        var controller = CreateController(
+            initialSettings,
+            history,
+            new FakeRsvpPresenter(),
+            settingsStore: settingsStore);
+
+        var updated = initialSettings with { DefaultWpm = 999, HistoryLimit = 1 };
+        await controller.UpdateSettingsAsync(updated);
+
+        Assert.Equal(RsvpPlayer.MaximumWpm, controller.Settings.DefaultWpm);
+        Assert.Equal(RsvpPlayer.MaximumWpm, controller.Wpm);
+        Assert.Equal(1, controller.Settings.HistoryLimit);
+        Assert.Equal(controller.Settings, settingsStore.Current);
+        Assert.Equal(1, settingsStore.SaveCount);
+        Assert.Equal(1, history.ApplyLimitCount);
+        Assert.Equal(1, history.LastAppliedLimit);
+        Assert.Single(controller.History);
+        Assert.Equal("Ready.", controller.Status);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenSaveFailsKeepsCurrentSettingsAndReportsStatus()
+    {
+        var initialSettings = AppSettings.CreateDefault() with { DefaultWpm = 300, HistoryLimit = 5 };
+        var settingsStore = new InMemorySettingsStore(initialSettings)
+        {
+            SaveException = new IOException("settings unavailable")
+        };
+        var history = new InMemoryHistoryStore();
+        var controller = CreateController(
+            initialSettings,
+            history,
+            new FakeRsvpPresenter(),
+            settingsStore: settingsStore);
+
+        await controller.UpdateSettingsAsync(initialSettings with { DefaultWpm = 400, HistoryLimit = 2 });
+
+        Assert.Equal(initialSettings.Normalized(), controller.Settings);
+        Assert.Equal(300, controller.Wpm);
+        Assert.Equal("Settings save failed.", controller.Status);
+        Assert.Equal(0, history.ApplyLimitCount);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenHistoryLimitFailsKeepsSavedSettingsAndReportsStatus()
+    {
+        var initialSettings = AppSettings.CreateDefault() with { HistoryLimit = 5 };
+        var history = new InMemoryHistoryStore
+        {
+            ApplyLimitException = new IOException("history unavailable")
+        };
+        var settingsStore = new InMemorySettingsStore(initialSettings);
+        var controller = CreateController(
+            initialSettings,
+            history,
+            new FakeRsvpPresenter(),
+            settingsStore: settingsStore);
+
+        var updated = initialSettings with { HistoryLimit = 2 };
+        await controller.UpdateSettingsAsync(updated);
+
+        Assert.Equal(updated.Normalized(), controller.Settings);
+        Assert.Equal(updated.Normalized(), settingsStore.Current);
+        Assert.Equal("History limit update failed.", controller.Status);
+    }
+
     private static AppController CreateController(
         AppSettings settings,
         InMemoryHistoryStore history,
@@ -300,7 +451,8 @@ public class AppControllerTests
         IRegionSelector? selector = null,
         IScreenCaptureService? capture = null,
         IOcrService? ocr = null,
-        RsvpPlayer? player = null)
+        RsvpPlayer? player = null,
+        InMemorySettingsStore? settingsStore = null)
     {
         return new AppController(
             new FakeHotkeyService(),
@@ -309,7 +461,7 @@ public class AppControllerTests
             ocr,
             player ?? new RsvpPlayer(new FakeTicker()),
             presenter,
-            new InMemorySettingsStore(settings),
+            settingsStore ?? new InMemorySettingsStore(settings),
             history,
             settings,
             loadedHistory ?? []);

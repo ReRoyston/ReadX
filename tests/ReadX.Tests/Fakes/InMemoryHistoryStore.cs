@@ -13,8 +13,11 @@ public sealed class InMemoryHistoryStore : IHistoryStore
     public int AddCount => adds.Count;
     public IReadOnlyList<(string RawText, HistorySource Source, int Limit)> Adds => adds.ToArray();
     public Exception? AddException { get; init; }
+    public Exception? ApplyLimitException { get; init; }
     public Exception? LoadException { get; init; }
     public bool HoldAdd { get; init; }
+    public int ApplyLimitCount { get; private set; }
+    public int? LastAppliedLimit { get; private set; }
 
     public Task<IReadOnlyList<HistoryItem>> LoadAsync()
     {
@@ -53,6 +56,14 @@ public sealed class InMemoryHistoryStore : IHistoryStore
 
     public Task ApplyLimitAsync(int limit)
     {
+        if (ApplyLimitException is not null)
+        {
+            throw ApplyLimitException;
+        }
+
+        ApplyLimitCount++;
+        LastAppliedLimit = limit;
+
         while (items.Count > limit)
         {
             items.RemoveAt(items.Count - 1);
