@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Hardened Task 9 settings updates so they preserve active playback/capture state, serialize saves, and release hotkey/OCR/presenter resources before the best-effort exit settings save.
 - Wired v2 startup composition to load persisted settings/history, apply them before showing the main window, save settings on changes/exit, register configurable hotkeys per action, and update controller-driven history/hotkey UI state.
 - Fixed minimized main-window settings readback to preserve restore bounds without marking the window maximized.
 - Replaced the main window with the v2 compact left-tab layout for Capture, Import, History, and Settings, including import playback, history replay buttons, settings controls, hotkey summaries, and compatibility state setters for Task 9 composition.

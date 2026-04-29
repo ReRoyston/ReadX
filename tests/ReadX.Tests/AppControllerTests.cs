@@ -398,6 +398,60 @@ public class AppControllerTests
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenPlaybackIsActive_PreservesPlayingState()
+    {
+        var initialSettings = AppSettings.CreateDefault() with { DefaultWpm = 300, HistoryLimit = 5 };
+        var presenter = new FakeRsvpPresenter { HoldPlaybackOpen = true };
+        var settingsStore = new InMemorySettingsStore(initialSettings);
+        var controller = CreateController(
+            initialSettings,
+            new InMemoryHistoryStore(),
+            presenter,
+            settingsStore: settingsStore);
+        var playback = controller.ImportTextAsync("one two");
+        await presenter.WaitForPlaybackAsync();
+
+        await controller.UpdateSettingsAsync(initialSettings with { DefaultWpm = 400, HistoryLimit = 5 });
+
+        Assert.Equal(AppState.Playing, controller.State);
+        Assert.Equal("Playing.", controller.Status);
+        Assert.Equal(400, controller.Settings.DefaultWpm);
+        Assert.Equal(400, controller.Wpm);
+        Assert.Equal(400, settingsStore.Current.DefaultWpm);
+
+        controller.CancelPlayback();
+        await playback;
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenSaveFailsDuringPlayback_PreservesPlayingStateAndReportsStatus()
+    {
+        var initialSettings = AppSettings.CreateDefault() with { DefaultWpm = 300, HistoryLimit = 5 };
+        var presenter = new FakeRsvpPresenter { HoldPlaybackOpen = true };
+        var settingsStore = new InMemorySettingsStore(initialSettings)
+        {
+            SaveException = new IOException("settings unavailable")
+        };
+        var controller = CreateController(
+            initialSettings,
+            new InMemoryHistoryStore(),
+            presenter,
+            settingsStore: settingsStore);
+        var playback = controller.ImportTextAsync("one two");
+        await presenter.WaitForPlaybackAsync();
+
+        await controller.UpdateSettingsAsync(initialSettings with { DefaultWpm = 400, HistoryLimit = 5 });
+
+        Assert.Equal(AppState.Playing, controller.State);
+        Assert.Equal("Settings save failed.", controller.Status);
+        Assert.Equal(initialSettings.Normalized(), controller.Settings);
+        Assert.Equal(PlayerState.Playing, presenter.LastPlayer!.State);
+
+        controller.CancelPlayback();
+        await playback;
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenSaveFailsKeepsCurrentSettingsAndReportsStatus()
     {
         var initialSettings = AppSettings.CreateDefault() with { DefaultWpm = 300, HistoryLimit = 5 };

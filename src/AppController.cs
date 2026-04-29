@@ -1,6 +1,7 @@
 using ReadX.Models;
 using ReadX.Services;
 using ReadX.Text;
+using System.Threading;
 
 namespace ReadX;
 
@@ -14,6 +15,7 @@ public sealed class AppController
     private readonly IRsvpPresenter presenter;
     private readonly ISettingsStore settingsStore;
     private readonly IHistoryStore history;
+    private readonly SemaphoreSlim settingsUpdateLock = new(1, 1);
     private bool workflowActive;
 
     public AppController(
@@ -119,28 +121,43 @@ public sealed class AppController
         ArgumentNullException.ThrowIfNull(settings);
 
         var normalized = settings.Normalized();
+        await settingsUpdateLock.WaitAsync();
         try
         {
-            await settingsStore.SaveAsync(normalized);
-        }
-        catch
-        {
-            SetIdle("Settings save failed.");
-            return;
-        }
+            try
+            {
+                await settingsStore.SaveAsync(normalized);
+            }
+            catch
+            {
+                SetStatusPreservingWorkflow("Settings save failed.");
+                return;
+            }
 
-        Settings = normalized;
-        Wpm = normalized.DefaultWpm;
+            Settings = normalized;
+            Wpm = normalized.DefaultWpm;
 
-        try
-        {
-            await history.ApplyLimitAsync(normalized.HistoryLimit);
-            History = await history.LoadAsync();
-            SetIdle("Ready.");
+            try
+            {
+                await history.ApplyLimitAsync(normalized.HistoryLimit);
+                History = await history.LoadAsync();
+                if (State == AppState.Idle && !workflowActive)
+                {
+                    SetIdle("Ready.");
+                }
+                else
+                {
+                    NotifyStateChanged();
+                }
+            }
+            catch
+            {
+                SetStatusPreservingWorkflow("History limit update failed.");
+            }
         }
-        catch
+        finally
         {
-            SetIdle("History limit update failed.");
+            settingsUpdateLock.Release();
         }
     }
 
@@ -422,6 +439,18 @@ public sealed class AppController
     private void NotifyStateChanged()
     {
         StateChanged?.Invoke();
+    }
+
+    private void SetStatusPreservingWorkflow(string status)
+    {
+        if (State == AppState.Idle && !workflowActive)
+        {
+            SetIdle(status);
+            return;
+        }
+
+        Status = status;
+        NotifyStateChanged();
     }
 
     private bool TryBeginWorkflow()

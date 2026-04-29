@@ -28,10 +28,10 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        SaveFinalSettings();
         hotkey?.Dispose();
         ocr?.Dispose();
         presenter?.Close();
+        SaveFinalSettings();
         base.OnExit(e);
     }
 

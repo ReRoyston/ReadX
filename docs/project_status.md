@@ -10,7 +10,7 @@
   - Added controller APIs for current hotkey bindings, action dispatch, registration status state, and settings updates with save/history-limit failure statuses
   - Registers all configured hotkeys after `SourceInitialized`, re-registers after settings changes, and reports per-action availability without disabling unrelated workflows
   - Applies controller state back to the main window, including busy/OCR/replay status, last text, history, status text, and hotkey registration summaries
-  - Saves final settings on exit before releasing hotkey, OCR, and presenter resources
+  - Preserves active playback/capture state while settings save/history-limit updates run, serializes settings updates, and saves final settings on exit after releasing hotkey, OCR, and presenter resources
   - Added focused controller coverage for Task 9 hotkey/settings APIs
 - **v2 Task 8 quality review:** Minimized main-window settings readback now preserves restore bounds while keeping `WindowMaximized` true only for maximized windows.
 - **v2 Task 8: Left-tab main window UI**
