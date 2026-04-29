@@ -1,8 +1,17 @@
 # Project Status
 
-**Current Phase:** v2 implementation - Task 9 composition wiring complete
+**Current Phase:** v2 - Implementation complete; final PR preparation pending
 
 ## Done
+- **v2 Task 10: Final automated and manual verification**
+  - Verified `dotnet build -m:1` succeeds with 0 errors
+  - Verified `dotnet test -m:1` passes: 76 passed, 0 failed
+  - Manually verified the app launches and remains running after startup
+  - Manually verified quick import starts RSVP playback and adds raw text to history
+  - Manually verified history replay starts playback without adding a new history row
+  - Manually verified settings changes persist to app data and reload after restart
+  - Manually verified persisted history reloads after restart
+  - Observed only existing NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
 - **v2 Task 9: Composition, settings save, hotkey registration**
   - Updated `App.xaml.cs` to load `JsonSettingsStore` and `JsonHistoryStore` through `AppDataPathProvider` during async startup before composing the main window
   - Applies loaded settings/history before showing `MainWindow`, then composes `AppController` with persisted stores, current settings, and loaded history
@@ -221,9 +230,9 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Continue with Task 10 manual golden path and final documentation from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
-2. Keep implementation scoped one task at a time with verification and documentation updates.
+1. Final code review for the full v2 implementation branch.
+2. Prepare merge/PR path for `v2-implementation` into the release branch.
 
 ## Known Issues
-- None for the confirmed Phase 10 golden path.
-- **Shell PATH note.** Current PowerShell sees `dotnet`. Older bash sessions may still need a terminal restart if they do not see `C:\Program Files\dotnet`.
+- No blocking v2 implementation issues found in automated or manual verification.
+- **NuGet vulnerability feed warning.** `dotnet build` / `dotnet test` emit NU1900 warnings when `https://api.nuget.org/v3/index.json` vulnerability data cannot be reached from the sandboxed environment; compilation and tests still pass.

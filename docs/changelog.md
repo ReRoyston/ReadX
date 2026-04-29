@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- v2 implemented and manually verified: persisted settings/history load on restart, quick import starts RSVP playback, history replay does not create duplicate history, configurable hotkey registration reports per-action status, cleanup/history settings persist, and the compact left-tab UI is wired end to end.
 - Hardened Task 9 settings updates so they preserve active playback/capture state, serialize saves, and release hotkey/OCR/presenter resources before the best-effort exit settings save.
 - Wired v2 startup composition to load persisted settings/history, apply them before showing the main window, save settings on changes/exit, register configurable hotkeys per action, and update controller-driven history/hotkey UI state.
 - Fixed minimized main-window settings readback to preserve restore bounds without marking the window maximized.
