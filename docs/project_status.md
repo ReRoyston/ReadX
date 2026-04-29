@@ -3,6 +3,7 @@
 **Current Phase:** v2 implementation - Task 8 left-tab main window UI complete
 
 ## Done
+- **v2 Task 8 quality review:** Minimized main-window settings readback now preserves restore bounds while keeping `WindowMaximized` true only for maximized windows.
 - **v2 Task 8: Left-tab main window UI**
   - Replaced the v1 single-pane main window with compact left tabs for Capture, Import, History, and Settings
   - Capture now exposes capture, replay-last, WPM, pause/resume, restart, cancel, OCR/hotkey status, and last-text display controls

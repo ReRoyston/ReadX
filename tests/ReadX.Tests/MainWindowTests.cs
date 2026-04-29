@@ -61,6 +61,40 @@ public sealed class MainWindowTests
     }
 
     [Fact]
+    public void ReadSettingsUsesRestoreBoundsWhenWindowIsMinimized()
+    {
+        RunOnSta(() =>
+        {
+            var window = new MainWindow();
+            try
+            {
+                window.ApplySettings(AppSettings.CreateDefault() with
+                {
+                    WindowWidth = 900,
+                    WindowHeight = 620,
+                    WindowLeft = 32,
+                    WindowTop = 48
+                });
+                window.Show();
+
+                window.WindowState = WindowState.Minimized;
+
+                var read = window.ReadSettings(AppSettings.CreateDefault());
+
+                Assert.Equal(900, read.WindowWidth);
+                Assert.Equal(620, read.WindowHeight);
+                Assert.Equal(32, read.WindowLeft);
+                Assert.Equal(48, read.WindowTop);
+                Assert.False(read.WindowMaximized);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
+    [Fact]
     public void SetHistoryCreatesReplayButtonsTaggedWithHistoryItems()
     {
         RunOnSta(() =>

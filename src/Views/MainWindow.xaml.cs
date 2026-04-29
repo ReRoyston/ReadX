@@ -93,7 +93,7 @@ public partial class MainWindow : Window
             historyLimit = Math.Clamp(parsedLimit, 1, 500);
         }
 
-        var bounds = WindowState == WindowState.Maximized
+        var bounds = WindowState != WindowState.Normal
             ? RestoreBounds
             : new Rect(Left, Top, Width, Height);
 
