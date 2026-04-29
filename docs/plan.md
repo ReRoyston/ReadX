@@ -1,5 +1,7 @@
 # ReadX v1 — Plan
 
+> Status: historical v1 implementation plan. v2.0.0 is released on `main`; current release status lives in `docs/project_status.md`.
+
 ## Context
 ReadX is a ShareX-style RSVP (Rapid Serial Visual Presentation) utility. The user invokes a global hotkey, drags a rectangle around text on screen, and an overlay above that region plays the extracted text back word-by-word at a configurable WPM. Long-term it will grow history, persistent settings, rebindable hotkeys, and more — but **v1 ships only the core loop** plus a minimal main window. Branch: `v1`.
 

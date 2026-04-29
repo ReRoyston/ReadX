@@ -11,7 +11,7 @@
 ## Product
 ShareX-style RSVP utility. Global hotkey → drag region → screen capture → OCR → RSVP overlay plays the words above the captured region at a configurable WPM. v1 ships only this core loop plus a minimal main window.
 
-v2 is planned as a daily-use release. It keeps the core loop, then adds persisted settings, raw-text history, quick manual import, configurable hotkeys, text cleanup, restartable playback controls, classic ORP focused-letter rendering, and a compact left-tab main window.
+v2.0.0 is the current released daily-use app on `main`. It keeps the core loop, then adds persisted settings, raw-text history, quick manual import, configurable hotkeys, text cleanup, restartable playback controls, classic ORP focused-letter rendering, and a compact left-tab main window. v2.1 is docs-only release cleanup and does not change product or runtime architecture.
 
 ## Components
 Single WPF project; modular layout, separated by concern.
@@ -37,6 +37,7 @@ Single WPF project; modular layout, separated by concern.
 Pure logic (`Tokenization/`, `Models/`, `RsvpPlayer` minus its timer) is testable without WPF. OS-touching services sit behind small interfaces so they can be stubbed.
 
 ## Key Design Decisions
+- **v2.1 is docs-only.** The release branch exists to correct stale documentation after v2.0.0 was released and promoted to `main`; no product, runtime, storage, or UI architecture changes are part of v2.1. (2026-04-30)
 - **v2 composition loads persisted app state before UI display.** `App.xaml.cs` now owns the Task 9 composition root: it creates app-data-backed settings/history stores, loads persisted settings and raw-text history asynchronously, applies them to `MainWindow` before showing it, composes `AppController` with those stores and loaded values, and saves final settings during exit cleanup. It also registers all configured hotkeys after `SourceInitialized` and re-registers them after settings changes, reporting each action independently so one unavailable binding does not disable unrelated UI workflows. (2026-04-29)
 - **v2 controller exposes composition-facing state contracts.** `AppController` now exposes current hotkey bindings, registration results, action-based hotkey dispatch, and `UpdateSettingsAsync`. Settings updates are serialized, normalize and save preferences, trim/reload history by the configured limit, update WPM, and report save/history-limit failures without forcing the controller to idle while capture or playback is active. (2026-04-29)
 - **v2 main window is event/state based.** `MainWindow` owns only the compact left-tab WPF layout and local control state. It raises capture, replay, import, history replay, playback-control, WPM, and settings-change events, and receives settings, history, hotkey registration status, busy/OCR/replay availability, last text, and status through explicit setters. History rows are built in code for v2 so each replay button can carry a stable `HistoryItem` tag without adding a new view model layer before Task 9 composition. (2026-04-29)

@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+- v2.1 docs-only cleanup: corrected release status, changelog release sectioning, architecture wording, project status, and historical planning notes after promoting v2.0.0 to main.
+
+## [v2.0.0] - 2026-04-30
 - Added Settings-tab hotkey editors, rejected modifierless global hotkey registration for bare Space/Esc defaults, and serialized settings saves with unique temp files to avoid exit/auto-save races.
 - v2 implemented and manually verified: persisted settings/history load on restart, quick import starts RSVP playback, history replay does not create duplicate history, configurable hotkey registration reports per-action status, cleanup/history settings persist, and the compact left-tab UI is wired end to end.
 - Hardened Task 9 settings updates so they preserve active playback/capture state, serialize saves, and release hotkey/OCR/presenter resources before the best-effort exit settings save.

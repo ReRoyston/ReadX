@@ -1,5 +1,7 @@
 # ReadX v2 Implementation Plan
 
+> Status: historical implementation plan. Completed and released as v2.0.0; v2.1 is docs-only cleanup for release status.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the v2 daily-use release: persisted settings, raw-text history, quick import, configurable hotkeys, cleanup, restartable playback, classic ORP rendering, and a compact left-tab UI.
