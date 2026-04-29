@@ -4,6 +4,11 @@ A running log of my learnings from building with AI.
 
 ---
 
+## 2026-04-30
+
+### Release cleanup needs a docs pass after branch promotion
+v2.0.0 was tagged, released, promoted to `main`, and followed by branch cleanup. The active docs still described v2 as pending PR work, so v2.1 exists as a docs-only correction. Future release checklists should include a post-merge docs status pass before deleting release branches.
+
 ## 2026-04-28
 
 ### V2 planning should follow daily workflows before visual polish

@@ -1,12 +1,23 @@
 # Project Status
 
-**Current Phase:** v2 - Implementation complete; final PR preparation pending
+**Current Phase:** v2.1 - Docs-only release cleanup
 
 ## Done
+- **v2.1 docs-only cleanup**
+  - Created `v2.1` from current `main` after PR #3 promoted v2 into main
+  - Updated docs to reflect the v2.0.0 release, published GitHub release, branch cleanup, and current main branch state
+  - Prepared the branch for immediate PR into `main`
+  - Kept the branch docs-only; no app source, tests, project files, or dependencies changed
+- **v2.0.0 release and branch cleanup**
+  - Merged PR #3 to promote v2 into `main`
+  - Published the GitHub release for `v2.0.0`
+  - Deleted stale `v1`, `v2`, and `v2-implementation` branches locally and remotely
+  - Left `main` as the current product branch before creating the docs-only `v2.1` branch
+  - Verified `dotnet test -m:1` on `main`: 82 passed, 0 failed
 - **v2 Task 10: Final automated and manual verification**
   - Addressed final review findings by adding Settings-tab hotkey editors, rejecting modifierless global hotkey registration, and serializing settings saves with unique temp files
   - Verified `dotnet build -m:1` succeeds with 0 errors
-  - Verified `dotnet test -m:1` passes: 76 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 82 passed, 0 failed
   - Manually verified the app launches and remains running after startup
   - Manually verified quick import starts RSVP playback and adds raw text to history
   - Manually verified history replay starts playback without adding a new history row
@@ -231,8 +242,8 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Final code review for the full v2 implementation branch.
-2. Prepare merge/PR path for `v2-implementation` into the release branch.
+1. Continue future feature planning from `main`.
+2. Keep release docs current before deleting future release branches.
 
 ## Known Issues
 - No blocking v2 implementation issues found in automated or manual verification.
