@@ -68,6 +68,19 @@ public sealed class RsvpPlayer
         }
     }
 
+    public void Restart()
+    {
+        if (words.Count == 0)
+        {
+            return;
+        }
+
+        ticker.Stop();
+        Index = -1;
+        State = PlayerState.Playing;
+        ticker.Start();
+    }
+
     public void Cancel()
     {
         ticker.Stop();

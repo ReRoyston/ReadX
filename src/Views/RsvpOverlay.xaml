@@ -19,13 +19,40 @@
                 <RowDefinition Height="24" />
             </Grid.RowDefinitions>
 
-            <TextBlock x:Name="WordText"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       FontSize="48"
-                       FontWeight="SemiBold"
-                       TextTrimming="CharacterEllipsis"
-                       TextAlignment="Center" />
+            <Grid Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="LeftWordText"
+                           Grid.Column="0"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           FontSize="48"
+                           FontWeight="SemiBold"
+                           TextAlignment="Right"
+                           TextTrimming="CharacterEllipsis" />
+
+                <TextBlock x:Name="FocusLetterText"
+                           Grid.Column="1"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="48"
+                           FontWeight="SemiBold"
+                           Foreground="#EF4444"
+                           TextAlignment="Center" />
+
+                <TextBlock x:Name="RightWordText"
+                           Grid.Column="2"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           FontSize="48"
+                           FontWeight="SemiBold"
+                           TextAlignment="Left"
+                           TextTrimming="CharacterEllipsis" />
+            </Grid>
 
             <ProgressBar x:Name="Progress"
                          Grid.Row="1"

@@ -1,8 +1,108 @@
 # Project Status
 
-**Current Phase:** v2 planning - design and implementation plan ready; awaiting execution choice
+**Current Phase:** v2 - Implementation complete; final PR preparation pending
 
 ## Done
+- **v2 Task 10: Final automated and manual verification**
+  - Addressed final review findings by adding Settings-tab hotkey editors, rejecting modifierless global hotkey registration, and serializing settings saves with unique temp files
+  - Verified `dotnet build -m:1` succeeds with 0 errors
+  - Verified `dotnet test -m:1` passes: 76 passed, 0 failed
+  - Manually verified the app launches and remains running after startup
+  - Manually verified quick import starts RSVP playback and adds raw text to history
+  - Manually verified history replay starts playback without adding a new history row
+  - Manually verified settings changes persist to app data and reload after restart
+  - Manually verified persisted history reloads after restart
+  - Observed only existing NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
+- **v2 Task 9: Composition, settings save, hotkey registration**
+  - Updated `App.xaml.cs` to load `JsonSettingsStore` and `JsonHistoryStore` through `AppDataPathProvider` during async startup before composing the main window
+  - Applies loaded settings/history before showing `MainWindow`, then composes `AppController` with persisted stores, current settings, and loaded history
+  - Wires capture, import, replay-last, history replay, pause/resume, restart, cancel, WPM changes, and settings changes from `MainWindow`
+  - Added controller APIs for current hotkey bindings, action dispatch, registration status state, and settings updates with save/history-limit failure statuses
+  - Registers all configured hotkeys after `SourceInitialized`, re-registers after settings changes, and reports per-action availability without disabling unrelated workflows
+  - Applies controller state back to the main window, including busy/OCR/replay status, last text, history, status text, and hotkey registration summaries
+  - Preserves active playback/capture state while settings save/history-limit updates run, serializes settings updates, and saves final settings on exit after releasing hotkey, OCR, and presenter resources
+  - Added focused controller coverage for Task 9 hotkey/settings APIs
+- **v2 Task 8 quality review:** Minimized main-window settings readback now preserves restore bounds while keeping `WindowMaximized` true only for maximized windows.
+- **v2 Task 8: Left-tab main window UI**
+  - Replaced the v1 single-pane main window with compact left tabs for Capture, Import, History, and Settings
+  - Capture now exposes capture, replay-last, WPM, pause/resume, restart, cancel, OCR/hotkey status, and last-text display controls
+  - Import provides a large text box with Play Text and Clear actions
+  - History displays the current history limit and builds timestamp/source/preview rows with replay buttons tagged by `HistoryItem`
+  - Settings exposes cleanup, history limit, and hotkey summary controls
+  - `MainWindow` now exposes the Task 9 event API for import/history replay/playback/settings changes while keeping the existing capture/replay/WPM compatibility API
+  - Added focused STA tests for settings application/readback, history replay button tagging, and hotkey registration summaries
+- **v2 Task 7: Controller integration for capture, import, history replay, and settings**
+  - Added a v2 `AppController` constructor that accepts settings/history stores, current settings, and loaded history while preserving the existing constructor for current composition
+  - Exposed controller `Settings` and `History` state
+  - Added import and history replay workflows that share `TextPipeline` cleanup/tokenization
+  - Routed capture OCR text through the same pipeline and stores raw capture/import text in history before playback
+  - Kept duplicate history entries and avoided adding new history entries when replaying an existing history item
+  - Enabled replay-last for import/history sessions with no capture region
+  - Added controller playback controls for pause/resume, restart, and cancel
+  - Updated `IRsvpPresenter` and `RsvpPresenter` so regionless sessions play centered while capture-region placement remains unchanged
+  - Hardened controller failure paths: history add/load failures now stop before playback with `History update failed.`, presenter failures cancel/close playback with `Playback failed.`, and import/history/replay-last setup is guarded against re-entry before playback starts
+  - Added in-memory settings/history test fakes and focused controller/presenter coverage
+  - Verified focused controller tests pass after review hardening: 13 passed, 0 failed
+  - Verified focused controller/presenter tests pass: 16 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 63 passed, 0 failed, with NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
+- **v2 Task 6: Multi-hotkey service**
+  - Expanded `IHotkeyService` with `HotkeyAction`, `HotkeyRegistration`, and `RegisterAll(...)` for action-specific configurable bindings
+  - Updated `HotkeyService` to register one Win32 id per action from base id `0x5258`, track only successfully registered ids, and unregister all active ids on cleanup
+  - Preserved `TryRegister(...)` as the current capture-only compatibility wrapper for `App.xaml.cs`
+  - Kept busy suppression for capture/replay while allowing pause/resume and cancel callbacks during playback
+  - Added an internal native-method seam and dispatch helper so registration, partial failure, cleanup, legacy callback, and busy behavior can be unit-tested without real OS hotkey registration
+  - Added focused coverage for `Esc` hotkey binding display text
+  - Verified focused hotkey binding/service tests pass: 8 passed, 0 failed
+  - Verified `dotnet build -m:1` passes: 0 errors, with NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
+  - Verified `dotnet test -m:1` passes: 50 passed, 0 failed
+- **v2 Task 5: ORP calculation and overlay rendering**
+  - Added `OrpWord` and `OrpCalculator` for classic approximate focus-letter calculation
+  - Replaced centered single-word overlay rendering with left, focus-letter, and right text segments anchored around a stable center column
+  - Highlighted the focus letter in red while preserving the existing progress bar and footer
+  - Routed `R` from the RSVP overlay to `RsvpPlayer.Restart()`
+  - Kept presenter lifecycle cleanup explicit by detaching player and overlay event handlers on completion, cancel, and close
+  - Hardened raw overlay close and presenter close so active playback is cancelled, while normal completion remains `Finished`
+  - Added focused ORP calculator coverage
+  - Added focused presenter lifecycle coverage for raw close cancellation and natural completion state preservation
+  - Verified focused ORP tests pass: 6 passed, 0 failed
+  - Verified focused presenter lifecycle tests pass: 2 passed, 0 failed
+  - Verified `dotnet build -m:1` passes: 0 errors, with NU1900 vulnerability-feed warnings from unavailable NuGet vulnerability data
+  - Verified `dotnet test -m:1` passes: 44 passed, 0 failed
+- **v2 Task 4: Restartable RSVP playback**
+  - Added `RsvpPlayer.Restart()` to stop the current ticker, reset the index, return to `Playing`, and restart playback from the first word on the next tick
+  - Expanded `RsvpSession` to store words, optional capture region, raw text, processed text, and history source metadata
+  - Preserved the existing capture-session constructor and `Text` compatibility accessor for current app call sites
+  - Guarded `ReplayLastAsync` so sessions without capture regions return to idle with a clear status instead of calling the current presenter contract with `null`
+  - Added focused coverage for restarting after playback has advanced
+  - Added focused coverage for replay sessions that do not have a capture region
+  - Verified focused playback tests pass: 9 passed, 0 failed
+  - Verified focused replay guard test passes: 1 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 36 passed, 0 failed
+- **v2 Task 3: Text cleanup and shared pipeline**
+  - Added `TextCleanupService` for optional cleanup before tokenization
+  - Cleanup normalizes input to Unicode Form C, rejoins hyphenated fragments only across single line breaks, collapses horizontal whitespace, converts single line wraps to spaces, avoids in-band paragraph sentinel characters, and preserves paragraph breaks as single readable `\n` separators
+  - Added `TextPipeline.BuildWords` to return raw text, processed text, and tokenized words from one shared path
+  - Moved hyphenated line-wrap responsibility out of `WordSplitter`; `WordSplitter` now only splits non-empty whitespace-delimited tokens
+  - Added focused coverage for cleanup behavior, control-character preservation, Unicode normalization before hyphen rejoin, pipeline cleanup toggle behavior, and skipped-cleanup tokenization
+  - Verified focused text/tokenizer tests pass: 11 passed, 0 failed
+  - Verified `dotnet test -m:1` passes: 34 passed, 0 failed
+- **v2 Task 2: Raw-text history store**
+  - Added `HistoryItem` and `HistorySource` models for raw capture/import history records
+  - Added `IHistoryStore` and `JsonHistoryStore` for JSON-backed history under app data
+  - History load returns newest-first valid raw-text entries and falls back to empty history when the file is missing or contains invalid JSON
+  - History load propagates IO/read failures instead of treating them as empty history
+  - History add keeps duplicate raw-text entries, ignores whitespace-only text, and trims oldest entries to the configured limit
+  - History limit changes can trim existing history through `ApplyLimitAsync`
+  - History store operations are serialized with a store-level semaphore so concurrent adds keep all entries when the limit allows
+  - History save writes through unique same-directory `history.json.*.tmp` files, then moves into `history.json` with overwrite to avoid truncating a good history file before serialization succeeds
+  - Verified `dotnet test -m:1` passes: 27 passed, 0 failed
+- **v2 Task 1: Settings persistence**
+  - Added `AppSettings` and `HotkeyBinding` models for persisted defaults and approved v2 hotkeys
+  - Added app-data path provider and JSON settings store interfaces/implementation
+  - Settings load falls back to defaults when the file is missing, invalid, or empty
+  - Settings save writes through `settings.json.tmp`, then replaces/moves into `settings.json` to avoid truncating a good settings file before serialization succeeds
+  - Window width/height normalize non-finite values to defaults; non-finite left/top values normalize to the unset `NaN` sentinel
+  - Verified `dotnet test -m:1` passes: 20 passed, 0 failed
 - v2 implementation plan drafted at `docs/superpowers/plans/2026-04-28-v2-implementation.md`:
   - Foundation-first file map and task order
   - Settings and history persistence tasks
@@ -131,10 +231,9 @@
   - Cleaned up pre-PR status docs after final automated and manual verification
 
 ## Up Next
-1. Choose execution mode: subagent-driven or inline execution.
-2. Begin Task 1 from `docs/superpowers/plans/2026-04-28-v2-implementation.md`.
-3. Continue one task at a time with verification and documentation updates.
+1. Final code review for the full v2 implementation branch.
+2. Prepare merge/PR path for `v2-implementation` into the release branch.
 
 ## Known Issues
-- None for the confirmed Phase 10 golden path.
-- **Shell PATH note.** Current PowerShell sees `dotnet`. Older bash sessions may still need a terminal restart if they do not see `C:\Program Files\dotnet`.
+- No blocking v2 implementation issues found in automated or manual verification.
+- **NuGet vulnerability feed warning.** `dotnet build` / `dotnet test` emit NU1900 warnings when `https://api.nuget.org/v3/index.json` vulnerability data cannot be reached from the sandboxed environment; compilation and tests still pass.

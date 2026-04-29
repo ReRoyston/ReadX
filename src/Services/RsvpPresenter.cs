@@ -9,7 +9,7 @@ public sealed class RsvpPresenter : IRsvpPresenter
     private RsvpOverlay? overlay;
     private TaskCompletionSource? activePlayback;
 
-    public Task PlayAsync(RsvpPlayer player, CaptureRegion region)
+    public Task PlayAsync(RsvpPlayer player, CaptureRegion? region)
     {
         ArgumentNullException.ThrowIfNull(player);
 
@@ -21,33 +21,68 @@ public sealed class RsvpPresenter : IRsvpPresenter
         }
 
         activePlayback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        overlay = new RsvpOverlay();
-        PositionOverlay(overlay, region);
+        var playbackOverlay = new RsvpOverlay();
+        overlay = playbackOverlay;
+        PositionOverlay(playbackOverlay, region);
+
+        var detached = false;
+        var closingFromCompletion = false;
 
         void OnWordChanged(string word)
         {
-            overlay?.ShowWord(word, player.Index + 1, player.Total);
+            playbackOverlay.ShowWord(word, player.Index + 1, player.Total);
+        }
+
+        void OnPauseRequested()
+        {
+            player.Pause();
+        }
+
+        void OnRestartRequested()
+        {
+            player.Restart();
+        }
+
+        void DetachHandlers()
+        {
+            if (detached)
+            {
+                return;
+            }
+
+            detached = true;
+            player.WordChanged -= OnWordChanged;
+            player.Completed -= OnCompleted;
+            playbackOverlay.PauseRequested -= OnPauseRequested;
+            playbackOverlay.RestartRequested -= OnRestartRequested;
+            playbackOverlay.CancelRequested -= OnCancelRequested;
         }
 
         void OnCompleted()
         {
-            player.WordChanged -= OnWordChanged;
-            player.Completed -= OnCompleted;
+            closingFromCompletion = true;
+            DetachHandlers();
             Close();
         }
 
-        overlay.PauseRequested += player.Pause;
-        overlay.CancelRequested += () =>
+        void OnCancelRequested()
         {
             player.Cancel();
-            player.WordChanged -= OnWordChanged;
-            player.Completed -= OnCompleted;
+            DetachHandlers();
             Close();
-        };
-        overlay.Closed += (_, _) =>
+        }
+
+        playbackOverlay.PauseRequested += OnPauseRequested;
+        playbackOverlay.RestartRequested += OnRestartRequested;
+        playbackOverlay.CancelRequested += OnCancelRequested;
+        playbackOverlay.Closed += (_, _) =>
         {
-            player.WordChanged -= OnWordChanged;
-            player.Completed -= OnCompleted;
+            if (!closingFromCompletion)
+            {
+                player.Cancel();
+            }
+
+            DetachHandlers();
             activePlayback?.TrySetResult();
             activePlayback = null;
             overlay = null;
@@ -56,8 +91,8 @@ public sealed class RsvpPresenter : IRsvpPresenter
         player.WordChanged += OnWordChanged;
         player.Completed += OnCompleted;
 
-        overlay.Show();
-        overlay.Activate();
+        playbackOverlay.Show();
+        playbackOverlay.Activate();
         player.Start();
 
         return activePlayback.Task;
@@ -77,7 +112,7 @@ public sealed class RsvpPresenter : IRsvpPresenter
         closing.Close();
     }
 
-    private static void PositionOverlay(Window window, CaptureRegion region)
+    private static void PositionOverlay(Window window, CaptureRegion? region)
     {
         const double margin = 12;
 
@@ -85,6 +120,14 @@ public sealed class RsvpPresenter : IRsvpPresenter
         var virtualTop = SystemParameters.VirtualScreenTop;
         var virtualRight = virtualLeft + SystemParameters.VirtualScreenWidth;
         var virtualBottom = virtualTop + SystemParameters.VirtualScreenHeight;
+
+        if (region is null)
+        {
+            window.Left = SystemParameters.WorkArea.Left + (SystemParameters.WorkArea.Width - window.Width) / 2d;
+            window.Top = SystemParameters.WorkArea.Top + (SystemParameters.WorkArea.Height - window.Height) / 2d;
+            return;
+        }
+
         var absoluteRegionLeft = virtualLeft + region.X;
         var absoluteRegionTop = virtualTop + region.Y;
 

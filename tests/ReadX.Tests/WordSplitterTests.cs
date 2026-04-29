@@ -13,11 +13,11 @@ public class WordSplitterTests
     }
 
     [Fact]
-    public void Split_RejoinsHyphenatedLineWrapFragments()
+    public void Split_TreatsLineWrappedHyphenAsTokenTextWhenCleanupIsSkipped()
     {
         var words = WordSplitter.Split("recom-\nmend reading");
 
-        Assert.Equal(["recommend", "reading"], words);
+        Assert.Equal(["recom-", "mend", "reading"], words);
     }
 
     [Fact]

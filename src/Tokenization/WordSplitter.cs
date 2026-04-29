@@ -11,16 +11,11 @@ public static partial class WordSplitter
             return [];
         }
 
-        var rejoined = HyphenatedLineWrapRegex().Replace(raw, string.Empty);
-
         return WhitespaceRegex()
-            .Split(rejoined.Trim())
+            .Split(raw.Trim())
             .Where(token => !string.IsNullOrWhiteSpace(token))
             .ToArray();
     }
-
-    [GeneratedRegex(@"(?<=\p{L})-\s*[\r\n]+\s*(?=\p{L})")]
-    private static partial Regex HyphenatedLineWrapRegex();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRegex();
