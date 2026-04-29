@@ -22,6 +22,30 @@ public sealed class HotkeyBindingTests
     }
 
     [Fact]
+    public void TryParseDisplayText_ParsesModifiersAndKey()
+    {
+        var parsed = HotkeyBinding.TryParseDisplayText("Ctrl+Alt+D1", out var binding);
+
+        Assert.True(parsed);
+        Assert.Equal(new HotkeyBinding(ModifierKeys.Control | ModifierKeys.Alt, Key.D1), binding);
+    }
+
+    [Fact]
+    public void TryParseDisplayText_ParsesEscAlias()
+    {
+        var parsed = HotkeyBinding.TryParseDisplayText("Esc", out var binding);
+
+        Assert.True(parsed);
+        Assert.Equal(new HotkeyBinding(ModifierKeys.None, Key.Escape), binding);
+    }
+
+    [Fact]
+    public void TryParseDisplayText_WhenInvalid_ReturnsFalse()
+    {
+        Assert.False(HotkeyBinding.TryParseDisplayText("Ctrl+DefinitelyNotAKey", out _));
+    }
+
+    [Fact]
     public void CreateDefault_ReturnsApprovedV2Bindings()
     {
         var settings = AppSettings.CreateDefault();

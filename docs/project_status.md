@@ -4,6 +4,7 @@
 
 ## Done
 - **v2 Task 10: Final automated and manual verification**
+  - Addressed final review findings by adding Settings-tab hotkey editors, rejecting modifierless global hotkey registration, and serializing settings saves with unique temp files
   - Verified `dotnet build -m:1` succeeds with 0 errors
   - Verified `dotnet test -m:1` passes: 76 passed, 0 failed
   - Manually verified the app launches and remains running after startup

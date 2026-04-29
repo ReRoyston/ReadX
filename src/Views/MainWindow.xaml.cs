@@ -49,6 +49,10 @@ public partial class MainWindow : Window
             WpmSlider.Value = normalized.DefaultWpm;
             CleanupCheckBox.IsChecked = normalized.CleanupEnabled;
             HistoryLimitTextBox.Text = normalized.HistoryLimit.ToString(CultureInfo.InvariantCulture);
+            CaptureHotkeyTextBox.Text = normalized.CaptureHotkey.ToDisplayText();
+            ReplayHotkeyTextBox.Text = normalized.ReplayLastHotkey.ToDisplayText();
+            PauseHotkeyTextBox.Text = normalized.PauseResumeHotkey.ToDisplayText();
+            CancelHotkeyTextBox.Text = normalized.CancelHotkey.ToDisplayText();
             UpdateHistoryLimitText(normalized.HistoryLimit);
             SetHotkeySummary(normalized);
 
@@ -102,6 +106,10 @@ public partial class MainWindow : Window
             DefaultWpm = Wpm,
             CleanupEnabled = CleanupCheckBox.IsChecked == true,
             HistoryLimit = historyLimit,
+            CaptureHotkey = ReadHotkey(CaptureHotkeyTextBox.Text, current.CaptureHotkey),
+            ReplayLastHotkey = ReadHotkey(ReplayHotkeyTextBox.Text, current.ReplayLastHotkey),
+            PauseResumeHotkey = ReadHotkey(PauseHotkeyTextBox.Text, current.PauseResumeHotkey),
+            CancelHotkey = ReadHotkey(CancelHotkeyTextBox.Text, current.CancelHotkey),
             WindowWidth = IsSensibleSize(bounds.Width, MinWidth) ? bounds.Width : current.WindowWidth,
             WindowHeight = IsSensibleSize(bounds.Height, MinHeight) ? bounds.Height : current.WindowHeight,
             WindowLeft = double.IsFinite(bounds.Left) ? bounds.Left : current.WindowLeft,
@@ -199,6 +207,11 @@ public partial class MainWindow : Window
     {
         var compact = string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         return compact.Length <= 110 ? compact : compact[..107] + "...";
+    }
+
+    private static HotkeyBinding ReadHotkey(string text, HotkeyBinding fallback)
+    {
+        return HotkeyBinding.TryParseDisplayText(text, out var binding) ? binding : fallback;
     }
 
     private FrameworkElement CreateHistoryItemView(HistoryItem item)

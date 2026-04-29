@@ -150,6 +150,11 @@ public sealed class HotkeyService : IHotkeyService
 
     private bool TryRegisterWin32Hotkey(IntPtr hwnd, int id, HotkeyBinding binding)
     {
+        if (binding.Modifiers == ModifierKeys.None)
+        {
+            return false;
+        }
+
         try
         {
             return nativeMethods.RegisterHotKey(

@@ -220,8 +220,30 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Margin="0,22,0,8" />
+                <Grid Width="320" HorizontalAlignment="Left">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Capture" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,10,8" />
+                    <TextBox x:Name="CaptureHotkeyTextBox" Grid.Row="0" Grid.Column="1" TextChanged="SettingsTextChanged" Margin="0,0,0,8" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Replay last" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,10,8" />
+                    <TextBox x:Name="ReplayHotkeyTextBox" Grid.Row="1" Grid.Column="1" TextChanged="SettingsTextChanged" Margin="0,0,0,8" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Pause/resume" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,10,8" />
+                    <TextBox x:Name="PauseHotkeyTextBox" Grid.Row="2" Grid.Column="1" TextChanged="SettingsTextChanged" Margin="0,0,0,8" />
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Cancel" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <TextBox x:Name="CancelHotkeyTextBox" Grid.Row="3" Grid.Column="1" TextChanged="SettingsTextChanged" />
+                </Grid>
                 <TextBlock x:Name="HotkeySummaryText"
                            Foreground="#CBD5E1"
+                           Margin="0,12,0,0"
                            TextWrapping="Wrap" />
             </StackPanel>
         </Grid>

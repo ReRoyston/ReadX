@@ -65,6 +65,22 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveAsync_WhenCalledConcurrently_SerializesWrites()
+    {
+        var store = new JsonSettingsStore(new TestPathProvider(root));
+
+        await Task.WhenAll(
+            Enumerable.Range(1, 20).Select(limit =>
+                store.SaveAsync(AppSettings.CreateDefault() with { HistoryLimit = limit })));
+
+        var reloaded = await store.LoadAsync();
+
+        Assert.InRange(reloaded.HistoryLimit, 1, 20);
+        Assert.True(File.Exists(Path.Combine(root, "settings.json")));
+        Assert.False(File.Exists(Path.Combine(root, "settings.json.tmp")));
+    }
+
+    [Fact]
     public void Normalized_WhenWindowValuesAreNonFinite_UsesSafeFallbacks()
     {
         var settings = AppSettings.CreateDefault() with

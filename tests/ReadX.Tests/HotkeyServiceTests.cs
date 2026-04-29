@@ -24,9 +24,7 @@ public sealed class HotkeyServiceTests
         Assert.Equal(
             [
                 IdFor(HotkeyAction.Capture),
-                IdFor(HotkeyAction.ReplayLast),
-                IdFor(HotkeyAction.PauseResume),
-                IdFor(HotkeyAction.Cancel)
+                IdFor(HotkeyAction.ReplayLast)
             ],
             native.RegisterCalls.Select(call => call.Id));
         Assert.Equal(Hwnd, native.RegisterCalls[0].Hwnd);
@@ -36,8 +34,8 @@ public sealed class HotkeyServiceTests
             [
                 new HotkeyRegistration(HotkeyAction.Capture, bindings[HotkeyAction.Capture], true),
                 new HotkeyRegistration(HotkeyAction.ReplayLast, bindings[HotkeyAction.ReplayLast], false),
-                new HotkeyRegistration(HotkeyAction.PauseResume, bindings[HotkeyAction.PauseResume], true),
-                new HotkeyRegistration(HotkeyAction.Cancel, bindings[HotkeyAction.Cancel], true)
+                new HotkeyRegistration(HotkeyAction.PauseResume, bindings[HotkeyAction.PauseResume], false),
+                new HotkeyRegistration(HotkeyAction.Cancel, bindings[HotkeyAction.Cancel], false)
             ],
             registrations);
 
@@ -58,9 +56,7 @@ public sealed class HotkeyServiceTests
 
         Assert.Equal(
             [
-                IdFor(HotkeyAction.Capture),
-                IdFor(HotkeyAction.PauseResume),
-                IdFor(HotkeyAction.Cancel)
+                IdFor(HotkeyAction.Capture)
             ],
             native.UnregisterCalls.Select(call => call.Id));
         Assert.All(native.UnregisterCalls, call => Assert.Equal(Hwnd, call.Hwnd));
@@ -96,10 +92,10 @@ public sealed class HotkeyServiceTests
 
         Assert.True(service.HandleHotkeyMessage(IdFor(HotkeyAction.Capture)));
         Assert.True(service.HandleHotkeyMessage(IdFor(HotkeyAction.ReplayLast)));
-        Assert.True(service.HandleHotkeyMessage(IdFor(HotkeyAction.PauseResume)));
-        Assert.True(service.HandleHotkeyMessage(IdFor(HotkeyAction.Cancel)));
+        Assert.False(service.HandleHotkeyMessage(IdFor(HotkeyAction.PauseResume)));
+        Assert.False(service.HandleHotkeyMessage(IdFor(HotkeyAction.Cancel)));
 
-        Assert.Equal([HotkeyAction.PauseResume, HotkeyAction.Cancel], callbacks);
+        Assert.Empty(callbacks);
     }
 
     [Fact]
@@ -114,9 +110,31 @@ public sealed class HotkeyServiceTests
 
         Assert.False(registrations.Single(registration => registration.Action == HotkeyAction.Capture).IsRegistered);
         Assert.True(registrations.Single(registration => registration.Action == HotkeyAction.ReplayLast).IsRegistered);
+        Assert.False(registrations.Single(registration => registration.Action == HotkeyAction.PauseResume).IsRegistered);
+        Assert.False(registrations.Single(registration => registration.Action == HotkeyAction.Cancel).IsRegistered);
         Assert.False(service.HandleHotkeyMessage(IdFor(HotkeyAction.Capture)));
         Assert.True(service.HandleHotkeyMessage(IdFor(HotkeyAction.ReplayLast)));
         Assert.Equal([HotkeyAction.ReplayLast], callbacks);
+    }
+
+    [Fact]
+    public void RegisterAll_WhenPauseAndCancelHaveModifiers_RegistersThemAsGlobalHotkeys()
+    {
+        var native = new FakeHotkeyNativeMethods();
+        using var service = new HotkeyService(native);
+        var callbacks = new List<HotkeyAction>();
+        var bindings = CreateBindings();
+        bindings[HotkeyAction.PauseResume] = new HotkeyBinding(ModifierKeys.Control, Key.Space);
+        bindings[HotkeyAction.Cancel] = new HotkeyBinding(ModifierKeys.Control, Key.Escape);
+
+        var registrations = service.RegisterAll(Hwnd, bindings, callbacks.Add);
+        service.SetBusy(true);
+
+        Assert.True(registrations.Single(registration => registration.Action == HotkeyAction.PauseResume).IsRegistered);
+        Assert.True(registrations.Single(registration => registration.Action == HotkeyAction.Cancel).IsRegistered);
+        Assert.True(service.HandleHotkeyMessage(IdFor(HotkeyAction.PauseResume)));
+        Assert.True(service.HandleHotkeyMessage(IdFor(HotkeyAction.Cancel)));
+        Assert.Equal([HotkeyAction.PauseResume, HotkeyAction.Cancel], callbacks);
     }
 
     private static Dictionary<HotkeyAction, HotkeyBinding> CreateBindings() => new()

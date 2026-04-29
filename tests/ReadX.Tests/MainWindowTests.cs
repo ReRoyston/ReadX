@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ReadX.Models;
 using ReadX.Services;
 using ReadX.Views;
@@ -142,6 +143,36 @@ public sealed class MainWindowTests
 
                 Assert.Contains("Capture: Ctrl+Shift+R registered", summary.Text);
                 Assert.Contains("Replay last: Ctrl+Shift+E unavailable", summary.Text);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
+    [Fact]
+    public void ReadSettingsReadsEditedHotkeyBindingsAndKeepsFallbackForInvalidBinding()
+    {
+        RunOnSta(() =>
+        {
+            var window = new MainWindow();
+            try
+            {
+                var current = AppSettings.CreateDefault();
+                window.ApplySettings(current);
+
+                ((TextBox)window.FindName("CaptureHotkeyTextBox")).Text = "Ctrl+Alt+D1";
+                ((TextBox)window.FindName("ReplayHotkeyTextBox")).Text = "Shift+D2";
+                ((TextBox)window.FindName("PauseHotkeyTextBox")).Text = "DefinitelyNotAKey";
+                ((TextBox)window.FindName("CancelHotkeyTextBox")).Text = "Ctrl+Esc";
+
+                var read = window.ReadSettings(current);
+
+                Assert.Equal(new HotkeyBinding(ModifierKeys.Control | ModifierKeys.Alt, Key.D1), read.CaptureHotkey);
+                Assert.Equal(new HotkeyBinding(ModifierKeys.Shift, Key.D2), read.ReplayLastHotkey);
+                Assert.Equal(current.PauseResumeHotkey, read.PauseResumeHotkey);
+                Assert.Equal(new HotkeyBinding(ModifierKeys.Control, Key.Escape), read.CancelHotkey);
             }
             finally
             {
